@@ -52,7 +52,7 @@ Ext.define('CustomApp', {
     componentCls: 'app',
     config: {
         defaultSettings: { 
-            valueStreamPicker: 'FPA'
+            valueStreamPicker: 'FPA, Integration'
         }
     },
     
@@ -76,8 +76,8 @@ Ext.define('CustomApp', {
                 field: 'c_ValueStream',
                 fieldLabel: 'Value Stream',
                 allowNoEntry: true,
-                value: 'FPA'
-             }
+                multiSelect: true
+            }
         ];
     },
     
@@ -160,9 +160,11 @@ Ext.define('CustomApp', {
                         this._loadAllChildProjectsFromParent(selectedProjRef);
                     }
                     
+                    console.log('creating the milestone Store Filter...');
                     //creating the milestone Store Filter.
                     this._createMilestoneStoreFilter();
-                             
+                    
+                     console.log('creating Milestone store.');
                     //creating Milestone store.
                     this._createMilestoneStore();
                     
@@ -217,7 +219,28 @@ Ext.define('CustomApp', {
             }));
         }
         
-        if(this.getSetting('valueStreamPicker') && this.getSetting('valueStreamPicker') !== null){
+        var vsSelectedValues = this.getSetting('valueStreamPicker');
+        var vsFilters = vsSelectedValues.split(',');
+        console.log('valuesteam settings value: ', vsFilters);
+        
+        this.projectMilestoneFilter =this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+                                                                property: 'c_ValueStream',
+                                                                operator: 'contains',
+                                                                value: vsFilters[0]
+                                                            })); 
+        if(vsFilters.length > 1){
+            for(var i=1; i<vsFilters.length; i++){
+                this.projectMilestoneFilter = this.projectMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
+                                                                property: 'c_ValueStream',
+                                                                operator: 'contains',
+                                                                value: vsFilters[i]
+                                                            }));
+            }
+        }
+        
+        console.log('valuesteam settings filter: ', this.projectMilestoneFilter);
+        
+        /*if(this.getSetting('valueStreamPicker') && this.getSetting('valueStreamPicker') !== null){
             
             this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
                 property: 'c_ValueStream',
@@ -231,7 +254,7 @@ Ext.define('CustomApp', {
                 operator: 'contains',
                 value: ''
             }));
-        }
+        }*/
     },
     
     _createMilestoneStore: function() {
@@ -632,19 +655,18 @@ Ext.define('CustomApp', {
                     {
                         text: 'Accepted Count',
                         dataIndex: 'AcceptedLeafStoryCount',
-                        flex: 1,
-                        hidden: true
+                        flex: 1
                     },
                     {
                         text: 'Story Count',
                         dataIndex: 'LeafStoryCount',
-                        flex: 1,
-                        hidden: true
+                        flex: 1
                     },
                     {
                         text: 'Status',
                         dataIndex: 'DisplayColor',
                         flex: 1,
+                        hidden: true,
                         renderer: function(value){
                             if(value){ 
                                 var colorHtml = Ext.String.format("<div class= 'color-box' style= 'background-color: {0};'></div>", value);
