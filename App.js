@@ -739,7 +739,9 @@ Ext.define('CustomApp', {
                                                  closeAction: 'destroy',
                                                  padding: 10,
                                                  width: 800,
-                                                 title: dialogTitle
+                                                 height: 500,
+                                                 title: dialogTitle,
+                                                 autoScroll : true
                                              });
                                             me._getMilestoneBurnupChart(r, chartDiag);
                                         }
@@ -1045,12 +1047,25 @@ Ext.define('CustomApp', {
 
 		Deft.Promise.all([ this._loadPIsInMilestone(), this._loadScheduleStateValues() ]).then({
 			success : function() {
-				var burnupChart = this._getChart();
+				var burnupChart = this._getChart(true);
 				
 				if(burnupChart !== null){
 				    chartDiag.removeAll(true);
 				    chartDiag.add(burnupChart);
+				    
+				    var that = this;
+				    
+				    console.log("this.piRecords " , this.piRecords);
+					 Ext.Array.each(this.piRecords, function(piRecord) {
+				    	var piBurnupChart = that._getChart(false, piRecord);
+						
+						if(piBurnupChart !== null){
+							 chartDiag.add(piBurnupChart);
+						}
+					});
+				   
 				}
+				
 			},
 			scope : this
 		});
@@ -1089,7 +1104,7 @@ Ext.define('CustomApp', {
 				this.piType = records[0].get('TypePath');
 				return Ext.create('Rally.data.wsapi.Store', {
 					model : this.piType,
-					fetch : [ 'ObjectID', 'Project', 'Name', 'PreliminaryEstimate', 'ActualStartDate', 'PlannedEndDate', 'AcceptedLeafStoryPlanEstimateTotal', 'LeafStoryPlanEstimateTotal' ],
+					fetch : [ 'ObjectID', 'FormattedID', 'Project', 'Name', 'PreliminaryEstimate', 'ActualStartDate', 'PlannedEndDate', 'AcceptedLeafStoryPlanEstimateTotal', 'LeafStoryPlanEstimateTotal' ],
 					filters : [ {
 						property : 'Milestones.ObjectID',
 						operator : '=',
@@ -1110,31 +1125,20 @@ Ext.define('CustomApp', {
 		});
 	},
 
-	_getChart : function() {
+	_getChart : function(isMileStone, piRecord) {
 		var that = this;
 
-		//console.log("_.invoke(that.selectedMilestoneObj, 'get', 'ActiveStartDate')", _.compact(_.invoke(that.selectedMilestoneObj, 'get', 'ActiveStartDate')));
-		//console.log("_.invoke(that.selectedMilestoneObj, 'get', 'ActiveStartDate')", (_.isEmpty(_.compact(_.invoke(that.selectedMilestoneObj, 'get', 'ActiveStartDate')))));
-		//console.log("that.piRecords",that.piRecords);
-		
-	    console.log('selectedMilestoneObj: ', that.selectedMilestoneObj);
-	    console.log('ActiveStartDate: ', that.selectedMilestoneObj.get('ActiveStartDate'));
-	    console.log('ActualStartDate: ', _.min(_.compact(_.invoke(that.piRecords, 'get', 'ActualStartDate'))));
-	    
 		var chartStartDate = that.selectedMilestoneObj.get('ActiveStartDate') !== '' ? that.selectedMilestoneObj.get('ActiveStartDate') : _.min(_.compact(_.invoke(that.piRecords, 'get', 'ActualStartDate')));
 		var chartEndDate = that.selectedMilestoneObj.get('TargetDate');
 		
 		/*var chartStartDate = _.isEmpty(_.compact(_.invoke(that.selectedMilestoneObj, 'get', 'ActiveStartDate'))) ? _.min(_.compact(_.invoke(that.piRecords, 'get', 'ActualStartDate'))) : _.first(_.compact(_.invoke(that.selectedMilestoneObj, 'get', 'ActiveStartDate'))); 
 		var chartEndDate = _.first(_.compact(_.invoke(that.selectedMilestoneObj, 'get', 'TargetDate')));*/
 		
-		console.log('Chart Start Date: ', chartStartDate);
-		console.log('Chart End Date: ', chartEndDate);
-		
 		var chart = {
 			xtype : 'rallychart',
 			flex : 1,
 			storeType : 'Rally.data.lookback.SnapshotStore',
-			storeConfig : that._getStoreConfig(),
+			storeConfig : isMileStone ? that._getStoreConfig() : that._getStoreConfigForPI(piRecord.data.ObjectID),
 			calculatorType : 'Rally.example.BurnCalculator',
 			calculatorConfig : {
 				completedScheduleStateNames : [ 'Accepted', 'Released' ],
@@ -1144,7 +1148,7 @@ Ext.define('CustomApp', {
 				enableProjects : true
 			},
 			chartColors: ["#A16E3A", "#1B7F25", "#B1B1B7", "#2E2EAC"],
-			chartConfig : that._getChartConfig(),
+			chartConfig : that._getChartConfig(isMileStone, piRecord),
 			listeners : {
 				afterrender : function(obj, eOpts ) {					
 					Ext.getBody().unmask();
@@ -1161,6 +1165,7 @@ Ext.define('CustomApp', {
 	 * stories of the specified PI
 	 */
 	_getStoreConfig : function() {
+		console.log("_.invoke(this.piRecords, 'getId')", _.invoke(this.piRecords, 'getId'));
 		return {
 			find : {
 				_TypeHierarchy : {
@@ -1179,19 +1184,42 @@ Ext.define('CustomApp', {
 			limit : Infinity
 		};
 	},
+	
+	
+	/**
+	 * Generate the store config to retrieve all snapshots for all leaf child
+	 * stories of a specified PI
+	 */
+	_getStoreConfigForPI : function(piId) {
+		return {
+			find : {
+				_TypeHierarchy : {
+					'$in' : [ 'HierarchicalRequirement' ]
+				},
+				_ItemHierarchy : piId
+			},
+			fetch : [ 'ScheduleState', 'PlanEstimate' ],
+			hydrate : [ 'ScheduleState' ],
+			sort : {
+				_ValidFrom : 1
+			},
+			context : this.getContext().getDataContext(),
+			limit : Infinity
+		};
+	},
 
 	/**
 	 * Generate a valid Highcharts configuration object to specify the chart
 	 */
 
-	_getChartConfig : function() {
+	_getChartConfig : function(isMileStone, piRecord) {
 		return {
 			chart : {
 				defaultSeriesType : 'area',
 				zoomType : 'xy'
 			},
 			title : {
-				text : 'Milestone Burnup'
+				text : isMileStone ? 'Milestone Burnup' : piRecord.data.FormattedID + ' - ' + piRecord.data.Name
 			},
 			xAxis : {
 				categories : [],
