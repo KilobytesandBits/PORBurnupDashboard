@@ -741,7 +741,8 @@ Ext.define('CustomApp', {
                                                  width: 800,
                                                  height: 500,
                                                  title: dialogTitle,
-                                                 autoScroll : true
+                                                 autoScroll : true,
+                                                 id : r.get('FormattedID') + 'Burnup_Chart'
                                              });
                                             me._getMilestoneBurnupChart(r, chartDiag);
                                         }
@@ -1030,12 +1031,16 @@ Ext.define('CustomApp', {
     /*========================= BurnUp Chart============================================================*/
     
     _getMilestoneBurnupChart: function(milestoneRec, chartDiag){
+    	var chartDiagId = chartDiag.getId();
+    	
         if(milestoneRec !== null){
             console.log('milestoneData: ', milestoneRec);
             
             this.selectedMilestone = milestoneRec.get('ObjectID');
     		this.selectedMilestoneObj = milestoneRec;
     		
+    		Ext.getCmp(chartDiagId).mask('Creating Burnup Chart for ' + this.selectedMilestoneObj.get('FormattedID') + '...');
+        	
     		this._getBurnupChart(chartDiag);
         }
     },
@@ -1047,23 +1052,26 @@ Ext.define('CustomApp', {
 
 		Deft.Promise.all([ this._loadPIsInMilestone(), this._loadScheduleStateValues() ]).then({
 			success : function() {
-				var burnupChart = this._getChart(true);
+				var burnupChart = this._getChart(true, null, chartDiag);
 				
 				if(burnupChart !== null){
-				    chartDiag.removeAll(true);
-				    chartDiag.add(burnupChart);
+					
+					chartDiag.removeAll(true);
+					chartDiag.add(burnupChart);
 				    
 				    var that = this;
 				    
-				    console.log("this.piRecords " , this.piRecords);
-					 Ext.Array.each(this.piRecords, function(piRecord) {
-				    	var piBurnupChart = that._getChart(false, piRecord);
+				    Ext.Array.each(this.piRecords, function(piRecord , index) {
+				    	var piBurnupChart = that._getChart(false, piRecord, chartDiag);
 						
 						if(piBurnupChart !== null){
-							 chartDiag.add(piBurnupChart);
+							/*if(index == 0) {
+								chartDiag.add({title : 'Scroll down for feature level burnup'});
+							}*/
+							chartDiag.add(piBurnupChart);
 						}
 					});
-				   
+				    
 				}
 				
 			},
@@ -1124,8 +1132,8 @@ Ext.define('CustomApp', {
 			scope : this
 		});
 	},
-
-	_getChart : function(isMileStone, piRecord) {
+	
+	_getChart : function(isMileStone, piRecord, chartDiag) {
 		var that = this;
 
 		var chartStartDate = that.selectedMilestoneObj.get('ActiveStartDate') !== '' ? that.selectedMilestoneObj.get('ActiveStartDate') : _.min(_.compact(_.invoke(that.piRecords, 'get', 'ActualStartDate')));
@@ -1151,7 +1159,7 @@ Ext.define('CustomApp', {
 			chartConfig : that._getChartConfig(isMileStone, piRecord),
 			listeners : {
 				afterrender : function(obj, eOpts ) {					
-					Ext.getBody().unmask();
+					Ext.getCmp(chartDiag.getId()).unmask();
 				},
 				scope : this
 			}
@@ -1165,7 +1173,6 @@ Ext.define('CustomApp', {
 	 * stories of the specified PI
 	 */
 	_getStoreConfig : function() {
-		console.log("_.invoke(this.piRecords, 'getId')", _.invoke(this.piRecords, 'getId'));
 		return {
 			find : {
 				_TypeHierarchy : {
