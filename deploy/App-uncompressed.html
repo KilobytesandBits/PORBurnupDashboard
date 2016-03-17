@@ -20,6 +20,7 @@ Ext.define('MilestoneTreeModel', {
                 {name: 'TargetProject', mapping: 'TargetProject', type: types.OBJECT},
                 {name: 'ValueStream', mapping: 'ValueStream', type: types.STRING},
                 {name: 'Visibility', mapping: 'Visibility', type: types.STRING},
+                {name: 'AdditionalReferences', mapping: 'AdditionalReferences', type: types.STRING},
                 {name: 'Status', mapping: 'Status', type: types.STRING},
                 {name: 'DisplayColor', mapping: 'DisplayColor', type: types.STRING},
                 {name: 'Notes', mapping: 'Notes', type: types.STRING},
@@ -44,6 +45,7 @@ Ext.define('MilestoneDataModel', {
                 {name: 'TargetProject', mapping: 'TargetProject', type: types.OBJECT},
                 {name: 'ValueStream', mapping: 'ValueStream', type: types.STRING},
                 {name: 'Visibility', mapping: 'Visibility', type: types.STRING},
+                {name: 'AdditionalReferences', mapping: 'AdditionalReferences', type: types.STRING},
                 {name: 'Status', mapping: 'Status', type: types.STRING},
                 {name: 'DisplayColor', mapping: 'DisplayColor', type: types.STRING},
                 {name: 'Notes', mapping: 'Notes', type: types.STRING},
@@ -86,15 +88,24 @@ Ext.define('CustomApp', {
                 fieldLabel: 'Value Stream',
                 allowNoEntry: true,
                 multiSelect: true
-            }
-        ];
+            },
+            {
+                 name: 'teamPicker',
+                 xtype: 'rallymultiobjectpicker',
+                 modelType: 'Project',
+                 fieldLabel: 'Associated Teams'
+            }];
     },
     
     items: [
         {
             xtype:"container", 
             itemId:"filterContainer", 
-            id:"filterContainer"
+            id:"filterContainer",
+            layout: {
+                type: 'hbox',
+                align: 'left'
+            }
         },
         {
             xtype:"container",
@@ -105,19 +116,70 @@ Ext.define('CustomApp', {
     
     launch: function() {
         
-        this.down('#filterContainer').add({
-            xtype: 'rallycheckboxfield',
-            id: 'executiveVisibilityCheckbox',
-            boxLabel: 'Show Executive Visibility Only',
-            labelWidth: 200,
-            padding: '10, 5, 10, 5',
-            checked: false,
-            listeners: {
-                change: this._onReady,
-                render: this._onReady,
-                scope: this
-            }
-        });
+        this.down('#filterContainer').add(
+            {
+                xtype: 'rallycheckboxfield',
+                id: 'executiveVisibilityCheckbox',
+                boxLabel: 'Show Executive Visibility Only',
+                labelWidth: 200,
+                padding: '10, 5, 10, 5',
+                checked: false,
+                listeners: {
+                    change: this._onReady,
+                    render: this._onReady,
+                    scope: this
+                }
+            },
+            {
+               xtype: 'panel',
+               bodyPadding: 5,
+               width: 400,
+                layout: {
+                    type: 'hbox',
+                    align: 'left'
+                },
+                 defaults: {
+                    labelWidth: 80,
+                    // implicitly create Container by specifying xtype
+                    xtype: 'datefield',
+                    flex: 1,
+                    style: {
+                        padding: '10px'
+                    }
+                },
+               items:[
+                    {
+                        xtype: 'rallydatefield',
+                        fieldLabel: 'Start Date',
+                        listeners: {
+                            change: this._onReady,
+                            render: this._onReady,
+                            scope: this
+                        }
+                    },
+                    {
+                        xtype: 'rallydatefield',
+                        fieldLabel: 'End Date',
+                        listeners: {
+                            change: this._onReady,
+                            render: this._onReady,
+                            scope: this
+                        }
+                    }]
+            },
+            {
+                 xtype: 'rallymultiobjectpicker',
+                 padding: '10, 5, 10, 5',
+                 modelType: 'Project',
+                 fieldLabel: 'Teams',
+                 labelAlign: 'right',
+                 width: 400,
+                 listeners: {
+                    change: this._onReady,
+                    render: this._onReady,
+                    scope: this
+                }
+            });
     },
     
     _onReady: function() {
@@ -248,22 +310,6 @@ Ext.define('CustomApp', {
         }
         
         console.log('valuesteam settings filter: ', this.projectMilestoneFilter);
-        
-        /*if(this.getSetting('valueStreamPicker') && this.getSetting('valueStreamPicker') !== null){
-            
-            this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
-                property: 'c_ValueStream',
-                operator: 'contains',
-                value: this.getSetting('valueStreamPicker')
-            }));
-            
-            //Need to include milestones without Value Stream also.
-            this.projectMilestoneFilter = this.projectMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
-                property: 'c_ValueStream',
-                operator: 'contains',
-                value: ''
-            }));
-        }*/
     },
     
     _createMilestoneStore: function() {
@@ -317,36 +363,83 @@ Ext.define('CustomApp', {
     
     _loadArtifactsForMilestones: function(milestoneArr){
         var that = this;
-        //console.log('inside _loadArtifactsForMilestones.....');
-        //console.log('imilestone records: ', milestoneArr);
+        this.milestoneProjectColl = [];
         
         this._loadArtifacts(milestoneArr).then({
                 success: function(records){
                     that.milestoneDataArray = [];
                     
                     Ext.Array.each(records, function(record, index){
-                        //console.log('print milestone recs: ', record);
-                        //console.log('print milestone index: ', index);
-                        //console.log('milestone array: ', milestoneArr);
-                        
+                        console.log('milestone Artifact coll of : ' + index + ' is : ', record);
                         var storyCountInfo = that._computeArtifactsAssociation(record);
                         //console.log('Milestone: [',  that.milestoneNameList[index] + '] has : (', storyCountInfo.acceptedCount + '/', storyCountInfo.storyCount + ') stories done.');
                         var milestoneRec = milestoneArr[index];
                         
                         var milestoneCustomData = that._createCustomMilestoneData(milestoneRec, storyCountInfo);
                         that.milestoneDataArray.push(milestoneCustomData);
+                        
+                        that.allAssociatedProjectColl = [];
+                        if(record !== null && record.length > 0){
+                            that._loadAllHierarchicalProjects(record).then({
+                            success: function(records){
+                                    var me = that;
+                                    Ext.Array.each(records, function(userStoryColl){
+                                        var you = me;
+                                        Ext.Array.each(userStoryColl, function(userStory){
+                                            //console.log('Milestone US: ', userStory);
+                                            //console.log('allAssociatedProjectColl: ', you.allAssociatedProjectColl);
+                                            
+                                            if(userStory && userStory.get('Project')){
+                                                var proj = userStory.get('Project');
+                                                if(you._isProjectPresentInAllAssociatedArtifactProjecColl(proj) === false)
+                                                    you.allAssociatedProjectColl.push(proj);
+                                            }
+                                        });
+                                    });
+                                    
+                                    //registering all Associated project info for current milestones.
+                                    me.milestoneProjectColl.push({
+                                        key: milestoneRec,
+                                        value: me.allAssociatedProjectColl
+                                    });
+                                },
+                                scope: that
+                            }).then({
+                                success: function(){
+                                    //console.log('Milestone Artifact Data list: ', that.milestoneDataArray);
+                                     console.log('Milestone Projects association list: ', that.milestoneProjectColl);
+                                     
+                                     //that._organiseMilestoneBasedOnValuestream(that.milestoneDataArray);
+                                },
+                                failure: function(error){
+                                    console.log('There are some errors while loading artifact projects.');
+                                    Ext.getBody().unmask();
+                                },
+                                scope: that
+                            });
+                        }
+                        
                     });
-                    
-                    //console.log('Milestone Artifact Data list: ', that.milestoneDataArray);
                     
                     that._organiseMilestoneBasedOnValuestream(that.milestoneDataArray);
                 },
                 failure: function(error){
-                    console.log('There are some errors');
+                    console.log('There are some errors loading artifacts.');
                     Ext.getBody().unmask();
                 },
-            scope: that
+                scope: that
             });
+    },
+    
+    _isProjectPresentInAllAssociatedArtifactProjecColl: function(proj){
+        var isPresent = false;
+        Ext.Array.each(this.allAssociatedProjectColl, function(projRec){
+            if(projRec && proj && projRec.Name === proj.Name){
+                isPresent = true;
+                return;
+            }
+        });
+        return isPresent;
     },
     
     _createCustomMilestoneData: function(milestoneItem, storyCountInfo){
@@ -359,6 +452,7 @@ Ext.define('CustomApp', {
             TargetDate : milestoneItem.get('TargetDate'),
             TargetProject : milestoneItem.get('Name'),
             ValueStream: milestoneItem.get('c_ValueStream'),
+            AdditionalReferences: milestoneItem.get('c_AdditionalReferences'),
             Visibility: milestoneItem.get('c_ExecutiveVisibility'),
             Status: milestoneItem.get('c_Test'),
             DisplayColor: milestoneItem.get('DisplayColor'),
@@ -413,7 +507,74 @@ Ext.define('CustomApp', {
                   if (success) {
                     deferred.resolve(records);
                   } else {
-                    deferred.reject("Error loading Companies.");
+                    deferred.reject("Error loading Artifacts.");
+                  }
+                }
+            });
+            
+        return deferred.promise;
+    },
+    
+    _loadAllHierarchicalProjects: function(artifactColl){
+        var promises = [];
+        var that = this;
+        
+        //console.log('loading HierarchicalProjects for: ', artifactColl);
+        
+         Ext.Array.each(artifactColl, function(artifact){
+            
+            //console.log('loading project of Artifiact: ', artifact);
+            var itemType = artifact.get('_type');
+            //console.log('loading project of Artifact Type: ', itemType);
+            if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
+                var project = artifact.get('Project');
+                
+                //console.log('Milestone Artifact Project: ', project);
+                
+                if(project && _.contains(that.allAssociatedProjectColl, project))
+                    that.allAssociatedProjectColl.push(project);
+            }
+            else{
+                var hierarchicalrequirementStore = Ext.create('Rally.data.wsapi.Store', {
+                        model: 'HierarchicalRequirement',
+                        fetch: ['ObjectID', 'FormattedID', 'Name', 'Project', 'Feature'],
+                        context: {
+                            workspace: that.getContext().getWorkspace()._Ref,
+                            project: null,
+                            limit: Infinity,
+                            projectScopeUp: false,
+                            projectScopeDown: true
+                        },
+                        filters: [
+                            {
+                                property: 'Feature.ObjectID',
+                                operator: '=',
+                                value: artifact.get('ObjectID')
+                            }
+                        ]
+                });
+                
+                promises.push(that._loadAllHierarchicalProjectsStore(hierarchicalrequirementStore));
+            }
+             
+         });
+         
+         return Deft.Promise.all(promises);
+    },
+    
+    _loadAllHierarchicalProjectsStore: function(store){
+         var deferred;
+        deferred = Ext.create('Deft.Deferred');
+        
+        //console.log('Loading projects for artifact store: ', store);
+        
+        store.load({
+                callback: function(records, operation, success) {
+                  if (success) {
+                      //console.log('project records: ', records);
+                      deferred.resolve(records);
+                  } else {
+                      deferred.reject("Error loading Hierarchical Projects.");
                   }
                 }
             });
@@ -422,6 +583,8 @@ Ext.define('CustomApp', {
     },
     
     _computeArtifactsAssociation: function(artifactColl){
+        
+        var that = this;
         var storyCountInfo = {
             storyCount: 0,
             acceptedCount: 0,
@@ -436,6 +599,7 @@ Ext.define('CustomApp', {
                 var scheduleState = item.get('ScheduleState');
                 
                 if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
+                    
                     leafStoryCount += 1;
                     
                     if (scheduleState == 'Accepted') {
@@ -475,6 +639,7 @@ Ext.define('CustomApp', {
             storyCountInfo.startDate = startDate;    
         }
         
+       
         return storyCountInfo;
     },
     
@@ -540,6 +705,7 @@ Ext.define('CustomApp', {
     },
     
     _createValueStreamMilestoneGrid: function(valueStreamRootNode){
+        console.log('createValueStreamMilestoneGrid calling.....');
         var milestonesTreePanel = Ext.getCmp('milestonesTreePanel');
         
         if (milestonesTreePanel)
@@ -688,6 +854,44 @@ Ext.define('CustomApp', {
                         dataIndex: 'Notes',
                         flex: 4
                     },
+                    {
+                        text: 'References',
+                        dataIndex: 'AdditionalReferences',
+                        flex: 2,
+                        renderer: function (v, m, r) {
+                            var id = Ext.id();
+                            //console.log('milestone record: ',r);
+                            if(r.get('FormattedID') !== ''){
+                                Ext.defer(function () {
+                                    Ext.widget('rallybutton', {
+                                        renderTo: id,
+                                        text: 'View ' + r.get('FormattedID') + ' References',
+                                        width: 150,
+                                        handler: function () { 
+                                                var dialogTitle = r.get('FormattedID') + ': Additional References';
+                                                if(r.get('AdditionalReferences') !== null && r.get('AdditionalReferences') !== ''){
+                                                        var chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+                                                         autoShow: true,
+                                                         draggable: false,
+                                                         closable: true,
+                                                         closeAction: 'destroy',
+                                                         padding: 10,
+                                                         width: 800,
+                                                         title: dialogTitle
+                                                     });
+                                                    //me._getMilestoneBurnupChart(r, chartDiag);
+                                                }
+                                                else{
+                                                    Ext.Msg.alert(dialogTitle, 'Sorry! There are NO reference mentioned.');
+                                                }
+                                            }
+                                            
+                                    });
+                                }, 50);
+                            }
+                            return Ext.String.format('<div id="{0}"></div>', id);
+                        }
+                    },
                     /*{
                         xtype:'actioncolumn',
                         text: 'Notes',
@@ -765,7 +969,17 @@ Ext.define('CustomApp', {
             cellclick: {fn: this._onTreePanelItemClick, scope: this}
         });
         
-        this.down('#gridContainer').add(valuestreamMilestoneTreePanel);
+        var gridContainer = this.getComponent('gridContainer');
+        if(gridContainer !== null){
+            gridContainer.removeAll();
+            gridContainer.add(valuestreamMilestoneTreePanel);
+        }
+       /* if(me.down('#gridContainer') !== null)
+        {
+            console.log('Adding to container....');
+            me.down('#gridContainer').removeAll(true);
+            me.down('#gridContainer').add(valuestreamMilestoneTreePanel);
+        }*/
         
         Ext.getBody().unmask();
     },
@@ -999,6 +1213,7 @@ Ext.define('CustomApp', {
             TargetProject: targetProjectName,
             DisplayColor: milestoneData.get('DisplayColor'),
             Notes: milestoneData.get('Notes'),
+            AdditionalReferences: milestoneData.get('AdditionalReferences'),
             _ref: milestoneData.get('_ref'),
             AcceptedLeafStoryCount: milestoneData.get('AcceptedLeafStoryCount').toString(),
             LeafStoryCount: milestoneData.get('LeafStoryCount').toString(),
@@ -1110,6 +1325,7 @@ Ext.define('CustomApp', {
 					limit : Infinity
 				}).load().then({
 					success : function(piRecords) {
+					    console.log('PI records: ', piRecords);
 						this.piRecords = piRecords;
 					},
 					scope : this
