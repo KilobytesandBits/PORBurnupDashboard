@@ -791,6 +791,19 @@ Ext.define('CustomApp', {
 			root : valueStreamRootNode
 		});
 
+		this.chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+			autoShow : false,
+			draggable : false,
+			closable : true,
+			closeAction : 'hide',
+			padding : 10,
+			width : 800,
+			height : 500,
+			autoScroll : true,
+			id : 'Burnup_Chart_Diag'
+		});
+		this.chartDiag.hide();
+
 		var valuestreamMilestoneTreePanel = Ext.create('Ext.tree.Panel', {
 			id : 'milestonesTreePanel',
 			itemId : 'milestonesTreePanel',
@@ -1003,19 +1016,10 @@ Ext.define('CustomApp', {
 						var record = grid.getStore().getAt(rowIndex);
 						if (record.get('FormattedID') != null && record.get('FormattedID') != "") {
 							var dialogTitle = record.get('FormattedID') + ': Burnup Chart';
-							var chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
-								autoShow : true,
-								draggable : false,
-								closable : true,
-								closeAction : 'destroy',
-								padding : 10,
-								width : 800,
-								height : 500,
-								title : dialogTitle,
-								autoScroll : true,
-								id : record.get('FormattedID') + 'Burnup_Chart'
-							});
-							me._getMilestoneBurnupChart(record, chartDiag);
+							me.chartDiag.setTitle(dialogTitle);
+							me.chartDiag.removeAll(true);
+							me.chartDiag.show();
+							me._getMilestoneBurnupChart(record, me.chartDiag);
 						} else {
 							Ext.Msg.alert("Burnup Chart", 'No Chart is available for valuestream item. Please click on individual milstone chart icon to get the chart.');
 						}
