@@ -263,7 +263,6 @@ Ext.define('CustomApp', {
 			}
 		}, /*{
 			xtype : 'panel',
-			padding : '5',
 			bodyPadding : 5,
 			width : 400,
 			layout : {
@@ -296,6 +295,7 @@ Ext.define('CustomApp', {
 					scope : this
 				}
 			} ]
+<<<<<<< HEAD
 		},*/ {
 			xtype : 'rallymultiobjectpicker',
 			id : 'teamFilterMultiPicker',
@@ -385,7 +385,7 @@ Ext.define('CustomApp', {
         
         return storeConfig;
 	},
-
+	
 	_onReady : function() {
 
 		this._getAllChildProjectsForCurrentProject(this.project);
@@ -434,7 +434,7 @@ Ext.define('CustomApp', {
 					if (selectedProjChildren && selectedProjChildren.Count > 0) {
 						this._loadAllChildProjectsFromParent(selectedProjRef);
 					}
-
+					
 					//console.log('creating the milestone Store Filter...');
 					//creating the milestone Store Filter.
 					this._createMilestoneStoreFilter();
@@ -511,7 +511,6 @@ Ext.define('CustomApp', {
 				}));
 			}
 		}
-
 		//console.log('valuesteam settings filter: ', this.projectMilestoneFilter);
 	},
 
@@ -767,7 +766,7 @@ Ext.define('CustomApp', {
 		//console.log('Associated Project Ref: ', refColl);
 		return refColl;
 	},
-
+	
 	_isProjectPresentInAllAssociatedArtifactProjecColl : function(proj) {
 		var isPresent = false;
 		Ext.Array.each(this.allAssociatedProjectColl, function(projRec) {
