@@ -24,6 +24,14 @@
     top: 0px;
 }
 
+.show-icon{
+    display: inline-block;
+}
+
+.hide-icon{
+    display: none;
+}
+
 .no-icon {
 	display : none;
 	background-image:url('ext/resources/images/default/s.gif') !important;
