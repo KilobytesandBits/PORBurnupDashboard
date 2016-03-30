@@ -402,14 +402,14 @@ Ext.define('CustomApp', {
 		            });
 		        }
 		        
-		        console.log('Feature Artifacts & US Mapping: ', this.featureUserStoriesMappingColl);
-		        console.log('Milestone Collection: ', this.milestoneColl);
-		        console.log('Milestone Artifact Mapping: ', this.milestoneArtifactMappingColl);
+		        //console.log('Feature Artifacts & US Mapping: ', this.featureUserStoriesMappingColl);
+		        //console.log('Milestone Collection: ', this.milestoneColl);
+		        //console.log('Milestone Artifact Mapping: ', this.milestoneArtifactMappingColl);
 		        
 		        this._loadMilestoneUserStoriesFromMapping();
 		        
-		        console.log('Milestone Userstories Mapping: ', this.milestoneUserStoriesMappingColl);
-		        console.log('Milestone with features without child Mapping: ', this.milestoneFeatureWithoutChildrenCountMappingColl);
+		        //console.log('Milestone Userstories Mapping: ', this.milestoneUserStoriesMappingColl);
+		        //console.log('Milestone with features without child Mapping: ', this.milestoneFeatureWithoutChildrenCountMappingColl);
 		        
 		        this._createMilestoneDataModelForDisplay();
 		        
@@ -832,11 +832,12 @@ Ext.define('CustomApp', {
         //console.log('StoryInfo filter is ' + isValid + ' for Milestone: ', milestoneRec);
         
         if(isValid){
-            var teamPickerSelected = this._getTeamFilterSelectionValue(); 				//'/project/3874483234,/project/2508024112';            
-            isValid = this._isMilestoneDataAssociatedWitheSelectedTeams(teamPickerSelected, projColl);
+            var teamPickerSelected = this._getTeamFilterSelectionValue(); 				//'/project/3874483234,/project/2508024112'; 
+            if(teamPickerSelected !== null && teamPickerSelected !== undefined && teamPickerSelected !== '')
+            	isValid = this._isMilestoneDataAssociatedWitheSelectedTeams(teamPickerSelected, projColl);
         }
         
-        console.log('Team selection filter is ' + isValid + ' for Milestone: ', milestoneRec);
+        //console.log('Team selection filter is ' + isValid + ' for Milestone: ', milestoneRec);
         
         return isValid;
     },
@@ -854,12 +855,15 @@ Ext.define('CustomApp', {
     _isMilestoneDataAssociatedWitheSelectedTeams: function(teamPickerSelection, associatedProj){
 		var isPresent = false;
 		var associatedProjRef = this._getAssociatedProjectRefColl(associatedProj);
-		//console.log('associated Project Ref collection: ', associatedProjRef);
+		
+		//console.log('associatedProj Ref coll: ', associatedProjRef);
+		if(associatedProjRef === null || associatedProjRef === undefined)
+			return true;
 		
 		var teamFilters = teamPickerSelection.split(',');
 		//console.log('team filter: ', teamFilters);
 		
-		if(teamFilters.length > 0 && associatedProjRef !== null && associatedProjRef.length > 0){
+		if(teamFilters.length > 0 && associatedProjRef !== null && associatedProjRef !== undefined && associatedProjRef.length > 0){
 			for (var i = 0; i < teamFilters.length; i++) 
 			{
 				if(associatedProjRef.indexOf(teamFilters[i]) > -1){
