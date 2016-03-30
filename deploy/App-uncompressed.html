@@ -176,14 +176,14 @@ Ext.define('MilestoneDataModel', {
 });
 
 Ext.define('CustomApp', {
-	extend : 'Rally.app.App',
-	componentCls : 'app',
-	config : {
+    extend: 'Rally.app.App',
+    componentCls: 'app',
+    config : {
 		defaultSettings : {
 			valueStreamPicker : 'FPA, Integration'
 		}
 	},
-
+	
 	getSettingsFields : function() {
 		return [ {
 			name : 'includeGlobalMilestones',
@@ -252,9 +252,10 @@ Ext.define('CustomApp', {
 		itemId : "gridContainer",
 		id : "gridContainer"
 	} ],
-
-	launch : function() {
-		var teamSelected = this.getSetting('teamPicker');
+    
+    
+    launch: function() {
+    	var teamSelected = this.getSetting('teamPicker');
 		console.log('Get team selected Values: ', teamSelected);
 		var selectedProjStoreConfig = this._getAllExecutiveProjStoreConfig(teamSelected);
 
@@ -267,45 +268,10 @@ Ext.define('CustomApp', {
 			checked : false,
 			listeners : {
 				change : this._onReady,
-				render : this._onReady,
+				//render : this._onReady,
 				scope : this
 			}
-		}, /*{
-			xtype : 'panel',
-			bodyPadding : 5,
-			width : 400,
-			layout : {
-				type : 'hbox',
-				align : 'left'
-			},
-			defaults : {
-				labelWidth : 80,
-				// implicitly create Container by specifying xtype
-				xtype : 'datefield',
-				flex : 1,
-				style : {
-					padding : '10px'
-				}
-			},
-			items : [ {
-				xtype : 'rallydatefield',
-				fieldLabel : 'Start Date',
-				listeners : {
-					change : this._onReady,
-					render : this._onReady,
-					scope : this
-				}
-			}, {
-				xtype : 'rallydatefield',
-				fieldLabel : 'End Date',
-				listeners : {
-					change : this._onReady,
-					render : this._onReady,
-					scope : this
-				}
-			} ]
-<<<<<<< HEAD
-		},*/ {
+		}, {
 			xtype : 'rallymultiobjectpicker',
 			id : 'teamFilterMultiPicker',
 			padding : '10, 5, 10, 5',
@@ -328,13 +294,15 @@ Ext.define('CustomApp', {
 				collapse: function(field, eOpts){
 					this._onReady();
 				},
-				render : this._onReady,
+				//render : this._onReady,
 				scope : this
 			}
 		});
-	},
-	
-	_getProjectRefString: function(values){
+		
+		this._loadAllMilestones();
+    },
+    
+    _getProjectRefString: function(values){
 		var teamList = '';
 		Ext.Array.each(values, function(thisProject){
 			if(thisProject.get('_ref') !== null)
@@ -397,590 +365,95 @@ Ext.define('CustomApp', {
 	
 	_onReady : function() {
 
-		this._getAllChildProjectsForCurrentProject(this.project);
+		this._loadAllMilestones();
 	},
-
-	_getAllChildProjectsForCurrentProject : function(currProject) {
-		Ext.getBody().mask('Loading...');
-
-		this.allProjectsList = [];
-		var that = this;
-		var projectStore = Ext.create('Rally.data.wsapi.Store', {
-			model : 'Project',
-			fetch : [ 'Name', 'State', 'Parent', 'Children' ],
-			autoLoad : true,
-			compact : false,
-			context : {
-				workspace : that.getContext().getWorkspace()._Ref,
-				projectScopeUp : false,
-				projectScopeDown : true
-			},
-			limit : Infinity,
-			filters : [ {
-				property : 'State',
-				operator : '=',
-				value : 'Open'
-			} ],
-			sorters : [ {
-				property : 'Name',
-				direction : 'ASC'
-			} ],
-			listeners : {
-				load : function(projectStore, data, success) {
-					//initiatilinzing the list containing the required and all projects.
-					this.requiredProjectsList = [];
-					this.allProjectsColl = data;
-
-					//identifying the selected project and constructing its reference.
-					var selectedProj = this.getContext().getProject();
-					var selectedProjRef = '/project/' + selectedProj.ObjectID;
-
-					//registering the selected project reference.
-					this.requiredProjectsList.push(selectedProj.ObjectID);
-
-					//identifying whether selected project has any children.
-					var selectedProjChildren = selectedProj.Children;
-					if (selectedProjChildren && selectedProjChildren.Count > 0) {
-						this._loadAllChildProjectsFromParent(selectedProjRef);
-					}
-					
-					//console.log('creating the milestone Store Filter...');
-					//creating the milestone Store Filter.
-					this._createMilestoneStoreFilter();
-
-					//console.log('creating Milestone store.');
-					//creating Milestone store.
-					this._createMilestoneStore();
-
-				},
-				scope : this
-			}
-		});
-	},
-
-	_loadAllChildProjectsFromParent : function(parentProjRef) {
-		var that = this;
-
-		Ext.Array.each(this.allProjectsColl, function(thisProject) {
-			//identifying current project is child of the Project with reference..
-			if (thisProject.get('Parent') && thisProject.get('Parent')._ref !== null && thisProject.get('Parent')._ref == parentProjRef) {
-				that.requiredProjectsList.push(thisProject.data.ObjectID);
-
-				//identifying whether the project as any further children.
-				var projChildren = thisProject.get('Children');
-				if (projChildren && projChildren.Count > 0) {
-					that._loadAllChildProjectsFromParent(thisProject.get('_ref'));
-				}
-			}
-		});
-	},
-
-	_createMilestoneStoreFilter : function() {
-		this.projectMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
-			property : 'TargetDate',
-			operator : '>=',
-			value : 'today-15'
-		});
-
-		//only apply filtering on the notes field if configured
-		if (this._getVisibilityFilter()) {
-			this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
-				property : 'c_ExecutiveVisibility',
-				operator : '=',
-				value : this._getVisibilityFilter()
-			}));
-		}
-
-		//only filter on date range if configured
-		if (this.getSetting('showNumberOfMonths') && this.getSetting('showNumberOfMonths') > 0) {
-			var endDate = Rally.util.DateTime.add(new Date(), "month", this.getSetting('showNumberOfMonths'));
-
-			this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
-				property : 'TargetDate',
-				operator : '<=',
-				value : endDate
-			}));
-		}
-
-		var vsSelectedValues = this.getSetting('valueStreamPicker');
-		var vsFilters = vsSelectedValues.split(',');
-		//console.log('valuesteam settings value: ', vsFilters);
-
-		this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
-			property : 'c_ValueStream',
-			operator : 'contains',
-			value : vsFilters[0]
-		}));
-		if (vsFilters.length > 1) {
-			for (var i = 1; i < vsFilters.length; i++) {
-				this.projectMilestoneFilter = this.projectMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
-					property : 'c_ValueStream',
-					operator : 'contains',
-					value : vsFilters[i]
-				}));
-			}
-		}
-		//console.log('valuesteam settings filter: ', this.projectMilestoneFilter);
-	},
-
-	_createMilestoneStore : function() {
-
-		Ext.create("Rally.data.wsapi.Store", {
+    
+    _loadAllMilestones: function(){
+    	Ext.getBody().mask('Loading...');
+    	
+        this._createMilestoneStoreFilter();
+        
+        var milsetoneStore = 	Ext.create("Rally.data.wsapi.Store", 
+        {
 			model : 'milestone',
 			autoLoad : true,
 			compact : false,
-			listeners : {
-				load : function(store, data, success) {
-					this._filterMileStones(data);
-				},
-				scope : this
-			},
 			filters : this.projectMilestoneFilter,
-			sorters : [ {
+			sorters : [{
 				property : 'c_ValueStream',
 				direction : 'ASC'
 			}, {
 				property : 'TargetDate',
 				direction : 'ASC'
-			} ]
-		});
-	},
-
-	//Only include milestones based on the current project and it's children
-	_filterMileStones : function(milestones) {
-		var that = this;
-
-		//Filter out milestone will be stored here
-		var filteredMilestonesArr = [];
-
-		Ext.each(milestones, function(milestone, index) {
-
-			if (milestone.data.TargetProject !== null && milestone.data.TargetProject !== "" && (that.requiredProjectsList.indexOf(milestone.data.TargetProject.ObjectID) > -1)) {
-				filteredMilestonesArr.push(milestone);
-			}
-
-			//If including global milestones, get milestones where TargetProject is not specific as well
-			if (that.getSetting('includeGlobalMilestones') && milestone.data.TargetProject === null) {
-				filteredMilestonesArr.push(milestone);
-			}
-		});
-
-		this._loadArtifactsForMilestones(filteredMilestonesArr);
-		//this._organiseMilestoneBasedOnValuestream(filteredMilestonesArr);
-	},
-
-	_loadArtifactsForMilestones : function(milestoneArr) {
-		var that = this;
-		this.milestoneProjectColl = [];
-
-		this._loadArtifacts(milestoneArr).then({
-			success : function(records) {
-				that.milestoneDataArray = [];
-				var promises = [];
-
-				Ext.Array.each(records, function(record, index) {
-					//console.log('milestone Artifact coll of : ' + index + ' is : ', record);
-					var storyCountInfo = that._computeArtifactsAssociation(record);
-					var milestoneRec = milestoneArr[index];
-					
-					//console.log('Milestone: [',  milestoneRec.get('Name') + '] has : (', storyCountInfo.acceptedCount + '/', storyCountInfo.storyCount + ') stories done. TargetDate is: '+ milestoneRec.get('TargetDate'));
-					
-					//filtering all milestones with past target date and 100% progress.
-					if(!(storyCountInfo.acceptedCount === storyCountInfo.storyCount && 
-					(milestoneRec.get('TargetDate') !== '' && milestoneRec.get('TargetDate') <= new Date())))
-					{
-						var milestoneCustomData = that._createCustomMilestoneData(milestoneRec, storyCountInfo);
-						that.milestoneDataArray.push(milestoneCustomData);
-						
-						if (record !== null && record.length > 0) {
-							promises.push(that._loadAllHierarchicalProjects(record).then(function(records){
-								var me = that;
-								Ext.Array.each(records, function(userStoryColl) {
-									var you = me;
-									that.allAssociatedProjectColl = [];
-									
-									Ext.Array.each(userStoryColl, function(userStory) {
-										//console.log('Milestone US: ', userStory);
-										//console.log('allAssociatedProjectColl: ', you.allAssociatedProjectColl);
-	
-										if (userStory && userStory.get('Project')) {
-											var proj = userStory.get('Project');
-											if (you._isProjectPresentInAllAssociatedArtifactProjecColl(proj) === false)
-												you.allAssociatedProjectColl.push(proj);
-										}
-									});
-								});
-	
-								//registering all Associated project info for current milestones.
-								me.milestoneProjectColl.push({
-									key : milestoneCustomData,
-									value : me.allAssociatedProjectColl
-								});
-							}.bind(that)));
-							
-							 Deft.Promise.all(promises).then(function(records) {
-							 	
-					        	console.log('Milestone Projects association list: ', that.milestoneProjectColl);
-								that.filteredMilestoneArray = that._filterMilestonesBasedOnTeamsSelected(that.milestoneProjectColl);
-								
-								console.log('Filtered Milestone Array Count: ', that.filteredMilestoneArray.length);
-								if(that.filteredMilestoneArray !== null && that.filteredMilestoneArray.length > 0)
-									that._organiseMilestoneBasedOnValuestream(that.filteredMilestoneArray);
-									
-						    }.bind(that));
-						    
-							/*that._loadAllHierarchicalProjects(record).then({
-								success : function(records) {
-									var me = that;
-									Ext.Array.each(records, function(userStoryColl) {
-										var you = me;
-										that.allAssociatedProjectColl = [];
-										
-										Ext.Array.each(userStoryColl, function(userStory) {
-											//console.log('Milestone US: ', userStory);
-											//console.log('allAssociatedProjectColl: ', you.allAssociatedProjectColl);
-	
-											if (userStory && userStory.get('Project')) {
-												var proj = userStory.get('Project');
-												if (you._isProjectPresentInAllAssociatedArtifactProjecColl(proj) === false)
-													you.allAssociatedProjectColl.push(proj);
-											}
-										});
-									});
-	
-									//registering all Associated project info for current milestones.
-									me.milestoneProjectColl.push({
-										key : milestoneCustomData,
-										value : me.allAssociatedProjectColl
-									});
-								},
-								scope : that
-							}).then({
-								success : function() {
-									//console.log('Milestone Artifact Data list: ', that.milestoneDataArray);
-									console.log('Milestone Projects association list: ', that.milestoneProjectColl);
-									that.filteredMilestoneArray = that._filterMilestonesBasedOnTeamsSelected(that.milestoneProjectColl);
-								},
-								failure : function(error) {
-									console.log('There are some errors while loading artifact projects.');
-									Ext.getBody().unmask();
-								},
-								scope : that
-							}).then({
-								success: function(){
-									console.log('Filtered Milestone Array Count: ', that.filteredMilestoneArray.length);
-									if(that.filteredMilestoneArray !== null && that.filteredMilestoneArray.length > 0)
-										that._organiseMilestoneBasedOnValuestream(that.filteredMilestoneArray);
-								},
-								failure : function(error) {
-									console.log('There are some errors while loading artifact projects.');
-									Ext.getBody().unmask();
-								},
-								scope : that
-							});*/
-						}
-					}
-
-				});
-
-				//that._organiseMilestoneBasedOnValuestream(that.milestoneDataArray);
-			},
-			failure : function(error) {
-				console.log('There are some errors loading artifacts.');
-				Ext.getBody().unmask();
-			},
-			scope : that
-		});
-	},
-	
-	_filterMilestonesBasedOnTeamsSelected: function(milestonesProjAssociationDic){
-		var that = this;
-		var teamPickerSelected = this.getSetting('teamPicker');
-		
-		//console.log('Team picker selected value: ', teamPickerSelected);
-		
-		//console.log('Team selected component value: ', this.selectedMultiTeamFilter);
-		
-		if(this.selectedMultiTeamFilter !== null && this.selectedMultiTeamFilter !== undefined && this.selectedMultiTeamFilter !== ''){
-			teamPickerSelected = this.selectedMultiTeamFilter;
-		}
-			
-		var filteredMilestoneColl = this.milestoneDataArray;
-		if(teamPickerSelected !== null && teamPickerSelected !== undefined && teamPickerSelected !== ''){
-			Ext.Array.each(milestonesProjAssociationDic, function(thisMilestoneProjRec) {
-			    var milestoneRec = thisMilestoneProjRec.key;
-			    var associatedProj = thisMilestoneProjRec.value;
-			    that._loadMilestoneRecWithAssociatedTeamInfo(milestoneRec, associatedProj);
-			    
-			    if(that._isSelectedTeamPresentInAssociatedData(teamPickerSelected, associatedProj)){
-			    	if(!_.contains(filteredMilestoneColl, milestoneRec))
-			    		filteredMilestoneColl.push(milestoneRec);
-			    }
-			});
-		}
-		
-		return filteredMilestoneColl;
-	},
-	
-	_loadMilestoneRecWithAssociatedTeamInfo: function(milestoneData, projColl){
-		var projNameCollStr = this._getAssociatedProjectNameCollString(projColl);
-		//console.log('Associated Projects Name list: ', projNameCollStr);
-		
-		if(projNameCollStr !== null && projNameCollStr !== '')
-		{
-			milestoneData.data.AssociatedTeams = projNameCollStr;
-		}
-	},
-	
-	_isSelectedTeamPresentInAssociatedData: function(teamPickerSelection, associatedProj){
-		var isPresent = false;
-		var associatedProjRef = this._getAssociatedProjectRefColl(associatedProj);
-		var teamFilters = teamPickerSelection.split(',');
-		if(teamFilters.length > 0){
-			for (var i = 0; i < teamFilters.length; i++) 
-			{
-				if(associatedProjRef.indexOf(teamFilters[i]) > -1){
-					isPresent = true;
-					break;
-				}
-			}
-		}
-		
-		//console.log('Is team present: ', isPresent);
-		return isPresent;
-	},
-	
-	_getAssociatedProjectNameCollString: function(projColl){
-		var nameColl = [];
-		Ext.Array.each(projColl,function(thisProject) {
-		    if(!_.contains(nameColl, thisProject.Name))
-		    	nameColl.push(thisProject.Name);
+			}]
 		});
 		
-		var nameStr = '';
-		Ext.Array.each(nameColl, function(thisProjectName) {
-		    nameStr = nameStr + thisProjectName + ',';
-		});
+		this.milestoneArtifactMappingColl = [];
+		this.featureUserStoriesMappingColl = [];
+		this.milestoneUserStoriesMappingColl = [];
+		this.milestoneFeatureWithoutChildrenCountMappingColl = [];
+		this.filteredMilestoneDataCollection = [];
 		
-		return (nameStr !== '' && nameStr.length > 1) ? nameStr.substring(0, nameStr.length-1) : nameStr;
-	},
-	
-	_getAssociatedProjectRefColl: function(projColl){
-		var refColl = [];
-		Ext.Array.each(projColl,function(thisProject) {
-		    if(!_.contains(refColl, thisProject._ref))
-		    	refColl.push(thisProject._ref);
+		milsetoneStore.load().then({
+		    success: this._loadArtifacts,
+		    scope: this
+		}).then({
+		    success: this._loadAllHierarchicalRequirements,
+		    scope: this
+		}).then({
+		    success: function(usRecords){
+		        //console.log('User Stories Records: ', usRecords);
+		        for(var i=0; i<usRecords.length; i++){
+		            var feature = this.featureArtifactColl[i];
+		            this.featureUserStoriesMappingColl.push({
+		                key: feature,
+		                value: usRecords[i]
+		            });
+		        }
+		        
+		        console.log('Feature Artifacts & US Mapping: ', this.featureUserStoriesMappingColl);
+		        console.log('Milestone Collection: ', this.milestoneColl);
+		        console.log('Milestone Artifact Mapping: ', this.milestoneArtifactMappingColl);
+		        
+		        this._loadMilestoneUserStoriesFromMapping();
+		        
+		        console.log('Milestone Userstories Mapping: ', this.milestoneUserStoriesMappingColl);
+		        console.log('Milestone with features without child Mapping: ', this.milestoneFeatureWithoutChildrenCountMappingColl);
+		        
+		        this._createMilestoneDataModelForDisplay();
+		        
+		        console.log('Filtered Milestone Data: ', this.filteredMilestoneDataCollection);
+		        
+		        this._organiseMilestoneBasedOnValuestream(this.filteredMilestoneDataCollection);
+		        
+		    },
+		    failure: function(error){
+		        console.log('Error loading milestones!');
+		    },
+		    scope: this
 		});
-		
-		//console.log('Associated Project Ref: ', refColl);
-		return refColl;
-	},
-	
-	_isProjectPresentInAllAssociatedArtifactProjecColl : function(proj) {
-		var isPresent = false;
-		Ext.Array.each(this.allAssociatedProjectColl, function(projRec) {
-			if (projRec && proj && projRec.Name === proj.Name) {
-				isPresent = true;
-				return;
-			}
-		});
-		return isPresent;
-	},
-
-	_createCustomMilestoneData : function(milestoneItem, storyCountInfo) {
-		var milestoneData = Ext.create('MilestoneDataModel', {
-			ObjectID : milestoneItem.get('ObjectID'),
-			FormattedID : milestoneItem.get('FormattedID'),
-			Name : milestoneItem.get('Name'),
-			StartDate : storyCountInfo.startDate,
-			ActiveStartDate : milestoneItem.get('c_ActiveStartDate'),
-			TargetDate : milestoneItem.get('TargetDate'),
-			TargetProject : milestoneItem.get('Name'),
-			ValueStream : milestoneItem.get('c_ValueStream'),
-			AdditionalReferences : milestoneItem.get('c_AdditionalReferences'),
-			Visibility : milestoneItem.get('c_ExecutiveVisibility'),
-			Status : milestoneItem.get('c_Test'),
-			DisplayColor : milestoneItem.get('DisplayColor'),
-			Notes : milestoneItem.get('Notes'),
-			_ref : milestoneItem.get('_ref'),
-			AcceptedLeafStoryCount : storyCountInfo.acceptedCount,
-			LeafStoryCount : storyCountInfo.storyCount,
-			FeaturesWithoutChildrenCount : storyCountInfo.featureNotBrokenCount,
-			StoryProgressPercent : storyCountInfo.storyCount > 0 ? (storyCountInfo.acceptedCount / storyCountInfo.storyCount) : 0
-		});
-
-		return milestoneData;
-	},
-
-	_loadArtifacts : function(milestoneList) {
-		var promises = [];
-		var that = this;
-
-		Ext.Array.each(milestoneList, function(milestone) {
-
-			var artifactStore = Ext.create('Rally.data.wsapi.artifact.Store', {
-				models : [ 'portfolioitem/feature', 'defect', 'userstory' ],
-				context : {
-					workspace : that.getContext().getWorkspace()._Ref,
-					project : null,
-					limit : Infinity,
-					projectScopeUp : false,
-					projectScopeDown : true
-				},
-				filters : [ {
-					property : 'Milestones.ObjectID',
-					operator : '=',
-					value : milestone.get('ObjectID')
-				} ]
-			});
-
-			promises.push(that._loadArtifactStore(artifactStore));
-
-		});
-
-		return Deft.Promise.all(promises);
-	},
-
-	_loadArtifactStore : function(store) {
-		var deferred;
-		deferred = Ext.create('Deft.Deferred');
-
-		store.load({
-			callback : function(records, operation, success) {
-				if (success) {
-					deferred.resolve(records);
-				} else {
-					deferred.reject("Error loading Artifacts.");
-				}
-			}
-		});
-
-		return deferred.promise;
-	},
-
-	_loadAllHierarchicalProjects : function(artifactColl) {
-		var promises = [];
-		var that = this;
-
-		//console.log('loading HierarchicalProjects for: ', artifactColl);
-
-		Ext.Array.each(artifactColl, function(artifact) {
-
-			//console.log('loading project of Artifiact: ', artifact);
-			var itemType = artifact.get('_type');
-			//console.log('loading project of Artifact Type: ', itemType);
-			if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
-				var project = artifact.get('Project');
-
-				//console.log('Milestone Artifact Project: ', project);
-
-				if (project && _.contains(that.allAssociatedProjectColl, project))
-					that.allAssociatedProjectColl.push(project);
-			} else {
-				var hierarchicalrequirementStore = Ext.create('Rally.data.wsapi.Store', {
-					model : 'HierarchicalRequirement',
-					fetch : [ 'ObjectID', 'FormattedID', 'Name', 'Project', 'Feature' ],
-					context : {
-						workspace : that.getContext().getWorkspace()._Ref,
-						project : null,
-						limit : Infinity,
-						projectScopeUp : false,
-						projectScopeDown : true
-					},
-					filters : [ {
-						property : 'Feature.ObjectID',
-						operator : '=',
-						value : artifact.get('ObjectID')
-					} ]
-				});
-
-				promises.push(that._loadAllHierarchicalProjectsStore(hierarchicalrequirementStore));
-			}
-
-		});
-
-		return Deft.Promise.all(promises);
-	},
-
-	_loadAllHierarchicalProjectsStore : function(store) {
-		var deferred;
-		deferred = Ext.create('Deft.Deferred');
-
-		//console.log('Loading projects for artifact store: ', store);
-
-		store.load({
-			callback : function(records, operation, success) {
-				if (success) {
-					//console.log('project records: ', records);
-					deferred.resolve(records);
-				} else {
-					deferred.reject("Error loading Hierarchical Projects.");
-				}
-			}
-		});
-
-		return deferred.promise;
-	},
-
-	_computeArtifactsAssociation : function(artifactColl) {
-
-		var that = this;
-		var storyCountInfo = {
-			storyCount : 0,
-			acceptedCount : 0,
-			startDate : null,
-			featureNotBrokenCount : 0
-		};
-		var leafStoryCount = 0, acceptedLeafStoryCount = 0, startDate = null, featuresWithoutChildren = 0;
-
-		if (artifactColl.length > 0) {
-			Ext.Array.each(artifactColl, function(item) {
-				var itemType = item.get('_type');
-				var scheduleState = item.get('ScheduleState');
-
-				if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
-
-					leafStoryCount += 1;
-
-					if (scheduleState == 'Accepted') {
-						acceptedLeafStoryCount += 1;
-					}
-
-					var inProgressDate = item.get('InProgressDate');
-
-					if (startDate === null || startDate > inProgressDate) {
-						startDate = inProgressDate;
-					}
-				} else {
-
-					if (item.get('LeafStoryCount') === 0) {
-						featuresWithoutChildren += 1;
-					} else {
-						leafStoryCount += item.get('LeafStoryCount');
-						acceptedLeafStoryCount += item.get('AcceptedLeafStoryCount');
-					}
-
-					var portfolioStartDate = item.get('ActualStartDate');
-
-					if (startDate === null || startDate > portfolioStartDate) {
-						startDate = portfolioStartDate;
-					}
-				}
-			});
-		}
-
-		storyCountInfo.storyCount = leafStoryCount;
-		storyCountInfo.acceptedCount = acceptedLeafStoryCount;
-		storyCountInfo.featureNotBrokenCount = featuresWithoutChildren;
-
-		if (startDate !== null) {
-			storyCountInfo.startDate = startDate;
-		}
-
-		return storyCountInfo;
-	},
-
-	_organiseMilestoneBasedOnValuestream : function(filteredMilestonesArr) {
+    },
+    
+    _createMilestoneDataModelForDisplay: function(){
+        var that = this;
+        
+        _.each(this.milestoneUserStoriesMappingColl, function(milestoneUSRec){
+            var milestoneRec = milestoneUSRec.key;
+            var usRecColl = milestoneUSRec.value;
+            
+            var featuresWithoutChildrenCount = that._getCountOfMilestoneFeaturesWithoutChildren(milestoneRec);
+            var milestoneComputeResult = that._performAllMilestoneComputaion(usRecColl, featuresWithoutChildrenCount);
+            
+            var isValid = that._isMilestoneValidForDisplay(milestoneRec, milestoneComputeResult);
+            
+            if(isValid){
+                var milestoneCustomData = that._createCustomMilestoneData(milestoneRec, milestoneComputeResult);
+                that.filteredMilestoneDataCollection.push(milestoneCustomData);
+            }
+        });
+    },
+    
+    _organiseMilestoneBasedOnValuestream : function(filteredMilestonesArr) {
 		this.valueStreamMilestoneColl = [];
 		this.valueStreamColl = [];
 		var nonVSCount = 0;
@@ -1016,11 +489,9 @@ Ext.define('CustomApp', {
 			});
 		});
 
-		//console.log('Milestone by VS: ', this.valueStreamMilestoneColl);
-
 		this._createValueStreamMilestonesTreeNode();
 	},
-
+	
 	_createValueStreamMilestonesTreeNode : function() {
 
 		var valueStreamRootNode = Ext.create('MilestoneTreeModel', {
@@ -1033,12 +504,86 @@ Ext.define('CustomApp', {
 
 		this._createValueStreamNodesAlongWithAssociatedChildMilestoneNodes(valueStreamRootNode);
 
-		//console.log('milestone tree node: ', valueStreamRootNode);
-
 		this._createValueStreamMilestoneGrid(valueStreamRootNode);
 
 	},
+	
+	_createValueStreamNodesAlongWithAssociatedChildMilestoneNodes : function(valustreamRootNode) {
+		var that = this;
 
+		Ext.Array.each(this.valueStreamMilestoneColl, function(thisData) {
+			var valueStreamNode = that._createValueStreamNode(thisData.key);
+
+			Ext.Array.each(thisData.value, function(thisMilestoneData) {
+				var milestoneNode = that._createMilestoneNode(thisMilestoneData);
+				valueStreamNode.appendChild(milestoneNode);
+			});
+
+			valustreamRootNode.appendChild(valueStreamNode);
+		});
+	},
+	
+	_createValueStreamNode : function(valuestreamData) {
+		var valueStreamLable = 'valuestream: ' + valuestreamData;
+		var valustreamTreeNode = Ext.create('MilestoneTreeModel', {
+			Name : valueStreamLable,
+			AcceptedLeafStoryCount : '',
+			LeafStoryCount : '',
+			StoryProgressPercent : '',
+			leaf : false,
+			expandable : true,
+			expanded : true,
+			iconCls : 'no-icon'
+		});
+
+		return valustreamTreeNode;
+	},
+
+	_createMilestoneNode : function(milestoneData) {
+		//console.log('Percentage Done rec: ', milestoneData.get('StoryProgressPercent').toString());
+		var targetProjectName = milestoneData.get('TargetProject') !== null ? milestoneData.get('TargetProject')._refObjectName : 'Global';
+
+		var milestoneTreeNode = Ext.create('MilestoneTreeModel', {
+			ObjectID : milestoneData.get('ObjectID'),
+			FormattedID : milestoneData.get('FormattedID'),
+			Name : milestoneData.get('Name'),
+			StartDate : milestoneData.get('StartDate'),
+			ActiveStartDate : milestoneData.get('ActiveStartDate'),
+			TargetDate : milestoneData.get('TargetDate'),
+			TargetProject : targetProjectName,
+			DisplayColor : milestoneData.get('DisplayColor'),
+			Notes : milestoneData.get('Notes'),
+			AdditionalReferences : milestoneData.get('AdditionalReferences'),
+			AssociatedTeams : milestoneData.get('AssociatedTeams'),
+			_ref : milestoneData.get('_ref'),
+			AcceptedLeafStoryCount : milestoneData.get('AcceptedLeafStoryCount').toString(),
+			LeafStoryCount : milestoneData.get('LeafStoryCount').toString(),
+			StoryProgressPercent : milestoneData.get('StoryProgressPercent').toString(),
+			FeaturesWithoutChildrenCount : milestoneData.get('FeaturesWithoutChildrenCount').toString(),
+			leaf : true,
+			expandable : false,
+			expanded : false,
+			iconCls : 'no-icon'
+		});
+
+		return milestoneTreeNode;
+	},
+	
+	_getAllAssociatedMilestones : function(valuestream, milestoneStoreData) {
+		var milestoneColl = [];
+
+		Ext.Array.each(milestoneStoreData, function(milestone) {
+			var vsRecord = milestone.get('ValueStream');
+			vsRecord = (vsRecord !== null && vsRecord !== '') ? vsRecord : 'N/A';
+
+			if (vsRecord === valuestream) {
+				milestoneColl.push(milestone);
+			}
+		});
+
+		return milestoneColl;
+	},
+	
 	_createValueStreamMilestoneGrid : function(valueStreamRootNode) {
 		console.log('createValueStreamMilestoneGrid calling.....');
 		var milestonesTreePanel = Ext.getCmp('milestonesTreePanel');
@@ -1229,45 +774,6 @@ Ext.define('CustomApp', {
 					}
 				} ]
 			},
-			/*{
-			    xtype:'actioncolumn',
-			    text: 'Notes',
-			    flex: 2,
-			    items: [{
-			        icon: 'https://cdn3.iconfinder.com/data/icons/developerkit/png/View.png',  // Use a URL in the icon config
-			        width: 75,
-			        tooltip: 'View',
-			        handler: function(grid, rowIndex, colIndex) {
-			            var columnIndex = me._getColumnIndex(grid, 'Notes');
-			            if(colIndex == columnIndex){
-			                //popup window code.
-			                var record = grid.getStore().getAt(rowIndex);
-			                me._displayNotesDailog(record);
-			            }
-			        }
-			    }]
-			},*/
-			/*{
-			    text: 'Notes',
-			    flex: 2,
-			    renderer: function (v, m, r) {
-			        var id = Ext.id();
-			        //console.log('milestone id: ',r.get('FormattedID'));
-			        if(r.get('FormattedID') !== '' && r.get('Notes') !== ''){
-			            Ext.defer(function () {
-			                Ext.widget('rallybutton', {
-			                    renderTo: id,
-			                    text: 'View ' + r.get('FormattedID') + ' Notes',
-			                    width: 150,
-			                    handler: function () { 
-			                        Ext.Msg.alert('Info', r.get('Notes')); 
-			                    }
-			                });
-			            }, 50);
-			        }
-			        return Ext.String.format('<div id="{0}"></div>', id);
-			    }
-			},*/
 			{
 				xtype : 'actioncolumn',
 				text : 'Chart',
@@ -1307,13 +813,7 @@ Ext.define('CustomApp', {
 			gridContainer.removeAll();
 			gridContainer.add(valuestreamMilestoneTreePanel);
 		}
-		/* if(me.down('#gridContainer') !== null)
-		 {
-		     console.log('Adding to container....');
-		     me.down('#gridContainer').removeAll(true);
-		     me.down('#gridContainer').add(valuestreamMilestoneTreePanel);
-		 }*/
-
+		
 		Ext.getBody().unmask();
 	},
 	
@@ -1326,34 +826,387 @@ Ext.define('CustomApp', {
 		
 		return className;
 	},
+    
+    _isMilestoneValidForDisplay: function(milestoneRec, milestoneComputeResult){
+        var isValid = true;
+        
+        var storyInfo = milestoneComputeResult.storyInfo;
+        var projColl = milestoneComputeResult.projectColl;
+        var targetDate = milestoneRec.get('TargetDate');
+        
+        if((storyInfo.storyCount > 0 && storyInfo.storyCount === storyInfo.acceptedCount) && (targetDate !== '' && targetDate <= new Date())){
+            isValid = false;
+        }
+        
+        //console.log('StoryInfo filter is ' + isValid + ' for Milestone: ', milestoneRec);
+        
+        if(isValid){
+            var teamPickerSelected = this._getTeamFilterSelectionValue(); 				//'/project/3874483234,/project/2508024112';            
+            isValid = this._isMilestoneDataAssociatedWitheSelectedTeams(teamPickerSelected, projColl);
+        }
+        
+        console.log('Team selection filter is ' + isValid + ' for Milestone: ', milestoneRec);
+        
+        return isValid;
+    },
+    
+    _getTeamFilterSelectionValue: function(){
+        var teamPickerSelected = this.getSetting('teamPicker');
+        
+	 	if(this.selectedMultiTeamFilter !== null && this.selectedMultiTeamFilter !== undefined && this.selectedMultiTeamFilter !== ''){
+			teamPickerSelected = this.selectedMultiTeamFilter;
+		}
+		
+		return teamPickerSelected;
+    },
+    
+    _isMilestoneDataAssociatedWitheSelectedTeams: function(teamPickerSelection, associatedProj){
+		var isPresent = false;
+		var associatedProjRef = this._getAssociatedProjectRefColl(associatedProj);
+		//console.log('associated Project Ref collection: ', associatedProjRef);
+		
+		var teamFilters = teamPickerSelection.split(',');
+		//console.log('team filter: ', teamFilters);
+		
+		if(teamFilters.length > 0 && associatedProjRef !== null && associatedProjRef.length > 0){
+			for (var i = 0; i < teamFilters.length; i++) 
+			{
+				if(associatedProjRef.indexOf(teamFilters[i]) > -1){
+					isPresent = true;
+					break;
+				}
+			}
+		}
+		
+		return isPresent;
+	},
+	
+	_getAssociatedProjectNameCollString: function(projColl){
+		var nameColl = [];
+		Ext.Array.each(projColl,function(thisProject) {
+		    if(!_.contains(nameColl, thisProject.Name))
+		    	nameColl.push(thisProject.Name);
+		});
+		
+		var nameStr = '';
+		Ext.Array.each(nameColl, function(thisProjectName) {
+		    nameStr = nameStr + thisProjectName + ',';
+		});
+		
+		return (nameStr !== '' && nameStr.length > 1) ? nameStr.substring(0, nameStr.length-1) : nameStr;
+	},
+	
+	_getAssociatedProjectRefColl: function(projColl){
+		var refColl = [];
+		Ext.Array.each(projColl,function(thisProject) {
+		    if(!_.contains(refColl, thisProject._ref))
+		    	refColl.push(thisProject._ref);
+		});
+		
+		return refColl;
+	},
+    
+    _getCountOfMilestoneFeaturesWithoutChildren: function(milestone){
+        var count = 0;
+        _.each(this.milestoneFeatureWithoutChildrenCountMappingColl, function(milestoneCollRec){
+            var milestoneRec = milestoneCollRec.key;
+            var noChildCount = milestoneCollRec.value;
+            
+            if(milestoneRec.get('ObjectID') === milestone.get('ObjectID')){
+               count = (noChildCount !== null && noChildCount !== undefined) ? noChildCount : 0;
+               return;
+            }
+        });
+        
+        return count;
+    },
+    
+    _performAllMilestoneComputaion: function(usColl, featureWithoutChildCount){
+        var milestoneStoryInfo = {
+            storyInfo: [],
+            projectColl: []
+        };
+        
+        var storyCountInfo = {
+			storyCount : 0,
+			acceptedCount : 0,
+			startDate : null,
+			featureNotBrokenCount : featureWithoutChildCount
+		};
+		
+		var projColl = [];
+		
+		var leafStoryCount = 0, acceptedLeafStoryCount = 0, startDate = null;
+		
+		 _.each(usColl, function(us){
+		     leafStoryCount += 1;
+		     
+		     var scheduleState = us.get('ScheduleState');
+		     if (scheduleState === 'Accepted') {
+				acceptedLeafStoryCount += 1;
+			 }
+			 
+			 var inProgressDate = us.get('InProgressDate');
 
-	/*============================= For Milestone Notes Dailog ============================================================*/
+			if (startDate === null || startDate > inProgressDate) {
+				startDate = inProgressDate;
+			}
+			
+			var proj = us.get('Project');
+            if(proj !== null && !_.contains(projColl, proj)){
+                projColl.push(proj);
+            }
+		 });
+        
+        storyCountInfo.storyCount = leafStoryCount;
+        storyCountInfo.acceptedCount = acceptedLeafStoryCount;
+        storyCountInfo.startDate = startDate;
+        
+        milestoneStoryInfo.storyInfo = storyCountInfo;
+        milestoneStoryInfo.projectColl = projColl;
+        
+        return milestoneStoryInfo;
+    },
+    
+    _getAllProjectsAssociatedWithMilestone: function(usColl){
+        var projColl = [];
+        _.each(usColl, function(us){
+            var proj = us.get('Project');
+            if(proj !== null && !_.contains(projColl, proj)){
+                projColl.push(proj);
+            }
+        });
+        
+        return projColl;
+    },
+    
+    _createCustomMilestoneData : function(milestoneItem, milestoneComputeResult) {
+        var storyCountInfo = milestoneComputeResult.storyInfo;
+        var projColl = milestoneComputeResult.projectColl;
+        var projectNameList = this._getAssociatedProjectNameCollString(projColl);
+        
+		var milestoneData = Ext.create('MilestoneDataModel', {
+			ObjectID : milestoneItem.get('ObjectID'),
+			FormattedID : milestoneItem.get('FormattedID'),
+			Name : milestoneItem.get('Name'),
+			StartDate : storyCountInfo.startDate,
+			ActiveStartDate : milestoneItem.get('c_ActiveStartDate'),
+			TargetDate : milestoneItem.get('TargetDate'),
+			TargetProject : milestoneItem.get('Name'),
+			ValueStream : milestoneItem.get('c_ValueStream'),
+			AdditionalReferences : milestoneItem.get('c_AdditionalReferences'),
+			Visibility : milestoneItem.get('c_ExecutiveVisibility'),
+			Status : milestoneItem.get('c_Test'),
+			DisplayColor : milestoneItem.get('DisplayColor'),
+			Notes : milestoneItem.get('Notes'),
+			_ref : milestoneItem.get('_ref'),
+			AssociatedTeams: projectNameList,
+			AcceptedLeafStoryCount : storyCountInfo.acceptedCount,
+			LeafStoryCount : storyCountInfo.storyCount,
+			FeaturesWithoutChildrenCount : storyCountInfo.featureNotBrokenCount,
+			StoryProgressPercent : storyCountInfo.storyCount > 0 ? (storyCountInfo.acceptedCount / storyCountInfo.storyCount) : 0
+		});
 
-	_getColumnIndex : function(grid, headerName) {
-		var gridColumns = grid.headerCt.getGridColumns();
-		for (var i = 0; i < gridColumns.length; i++) {
-			if (gridColumns[i].text == headerName) {
-				return i;
+		return milestoneData;
+	},
+    
+    _loadMilestoneUserStoriesFromMapping: function(){
+        var that = this;
+        
+        _.each(this.milestoneArtifactMappingColl, function(milestoneArtifactCollRec){
+            var userStoriesColl = [];
+            var milestoneRec = milestoneArtifactCollRec.key;
+            var artifactColl = milestoneArtifactCollRec.value;
+            
+            if(artifactColl.length > 0){
+                var featureWithoutChildCount = 0;
+                var me = that;
+                _.each(artifactColl, function(artifact) {
+                    var itemType = artifact.get('_type');
+			        if (itemType !== 'hierarchicalrequirement' && itemType !== 'defect'){
+			            
+			            if (artifact.get('LeafStoryCount') === 0) {
+    						featureWithoutChildCount += 1;
+    					}
+			            
+			            var usColl = me._getUserStoriesForFeatures(artifact);
+			            
+			            _.each(usColl, function(us) {
+			                userStoriesColl.push(us);
+			            });
+			        }
+			        else{
+			            //console.log('Found a direct Association of type: ' + itemType);
+			            //console.log('Direct Associated Artifact is: ', artifact);
+			            userStoriesColl.push(artifact);
+			        }
+                });
+            }
+            
+            that.milestoneFeatureWithoutChildrenCountMappingColl.push({
+                key: milestoneRec,
+                value: featureWithoutChildCount
+            });
+            
+            that.milestoneUserStoriesMappingColl.push({
+                key: milestoneRec,
+                value: userStoriesColl
+            });
+            
+        });
+    },
+    
+    _getUserStoriesForFeatures: function(artifact){
+        var usColl = [];
+        _.each(this.featureUserStoriesMappingColl, function(featureUSRec){
+            var feature = featureUSRec.key;
+            var userStoriesColl = featureUSRec.value;
+            
+            if(feature.get('ObjectID') === artifact.get('ObjectID')){
+                usColl = userStoriesColl;
+                return;
+            }
+        });
+        
+        return usColl;
+    },
+    
+    _createMilestoneStoreFilter : function() {
+		this.projectMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
+			property : 'TargetDate',
+			operator : '>=',
+			value : 'today-15'
+		});
+
+		//only apply filtering on the notes field if configured
+		if (this._getVisibilityFilter()) {
+			this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+				property : 'c_ExecutiveVisibility',
+				operator : '=',
+				value : this._getVisibilityFilter()
+			}));
+		}
+
+		//only filter on date range if configured
+		if (this.getSetting('showNumberOfMonths') && this.getSetting('showNumberOfMonths') > 0) {
+			var endDate = Rally.util.DateTime.add(new Date(), "month", this.getSetting('showNumberOfMonths'));
+
+			this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+				property : 'TargetDate',
+				operator : '<=',
+				value : endDate
+			}));
+		}
+
+		var vsSelectedValues = this.getSetting('valueStreamPicker');
+		var vsFilters = vsSelectedValues.split(',');
+		//console.log('valuesteam settings value: ', vsFilters);
+
+		this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+			property : 'c_ValueStream',
+			operator : 'contains',
+			value : vsFilters[0]
+		}));
+		if (vsFilters.length > 1) {
+			for (var i = 1; i < vsFilters.length; i++) {
+				this.projectMilestoneFilter = this.projectMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
+					property : 'c_ValueStream',
+					operator : 'contains',
+					value : vsFilters[i]
+				}));
 			}
 		}
 	},
+	
+	_loadArtifacts : function(milestoneRecords) {
+		var promises = [];
+		var that = this;
+		this.milestoneColl = milestoneRecords;
 
-	_getFieldText : function(fieldValue, defaultValue) {
-		return _.isUndefined(fieldValue) || _.isNull(fieldValue) ? defaultValue : fieldValue;
-	},
+		Ext.Array.each(milestoneRecords, function(milestone) {
 
-	_displayNotesDailog : function(recordData) {
-		Ext.create('Rally.ui.dialog.RichTextDialog', {
-			autoShow : true,
-			title : 'Milestone Note(s)',
-			record : recordData,
-			fieldName : 'Notes',
-			height : 350,
-			width : 550,
-			closable : true
+			var artifactStore = Ext.create('Rally.data.wsapi.artifact.Store', {
+				models : [ 'portfolioitem/feature', 'defect', 'userstory' ],
+				context : {
+					workspace : that.getContext().getWorkspace()._Ref,
+					project : null,
+					limit : Infinity,
+					projectScopeUp : false,
+					projectScopeDown : true
+				},
+				filters : [ {
+					property : 'Milestones.ObjectID',
+					operator : '=',
+					value : milestone.get('ObjectID')
+				} ]
+			});
+
+			promises.push(artifactStore.load());
+
 		});
-	},
 
+		return Deft.Promise.all(promises);
+	},
+	
+	_loadAllHierarchicalRequirements : function(artifactCollRecs) {
+	    //console.log('Artifacts collection: ', artifactCollRecs);
+	    
+	    for(var i=0; i < artifactCollRecs.length; i++){
+	        var milestone = this.milestoneColl[i];
+	        
+	        this.milestoneArtifactMappingColl.push({
+	            key: milestone,
+	            value: artifactCollRecs[i]
+	        });
+	    }
+	    
+	    var artifactColl = _.flatten(artifactCollRecs);
+	    this.featureArtifactColl = [];
+		var promises = [];
+		var that = this;
+
+		Ext.Array.each(artifactColl, function(artifact) {
+			var itemType = artifact.get('_type');
+			if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
+				var project = artifact.get('Project');
+				if (project && _.contains(that.allAssociatedProjectColl, project))
+					that.allAssociatedProjectColl.push(project);
+			} 
+			else 
+			{
+			    that.featureArtifactColl.push(artifact);
+			    
+				var hierarchicalrequirementStore = Ext.create('Rally.data.wsapi.Store', {
+					model : 'HierarchicalRequirement',
+					fetch : [ 'ObjectID', 'FormattedID', 'Name', 'Project', 'Feature', 'ScheduleState'],
+					context : {
+						workspace : that.getContext().getWorkspace()._Ref,
+						project : null,
+						limit : Infinity,
+						projectScopeUp : false,
+						projectScopeDown : true
+					},
+					filters : [ {
+						property : 'Feature.ObjectID',
+						operator : '=',
+						value : artifact.get('ObjectID')
+					} ]
+				});
+
+				promises.push(hierarchicalrequirementStore.load());
+			}
+
+		});
+
+		return Deft.Promise.all(promises);
+	},
+	
+	_getVisibilityFilter : function() {
+		var visibilityCheckBox = Ext.getCmp('executiveVisibilityCheckbox');
+		return visibilityCheckBox.getValue();
+		//return true;
+	},
+	
 	/*============================= For Milestone Progress Tooltip =========================================================*/
 
 	_onTreePanelItemClick : function(view, td, cellIndex, record, tr, rowIndex) {
@@ -1505,89 +1358,7 @@ Ext.define('CustomApp', {
 
 		return greenHex;
 	},
-
-	_createValueStreamNodesAlongWithAssociatedChildMilestoneNodes : function(valustreamRootNode) {
-		var that = this;
-
-		Ext.Array.each(this.valueStreamMilestoneColl, function(thisData) {
-			var valueStreamNode = that._createValueStreamNode(thisData.key);
-
-			Ext.Array.each(thisData.value, function(thisMilestoneData) {
-				var milestoneNode = that._createMilestoneNode(thisMilestoneData);
-				valueStreamNode.appendChild(milestoneNode);
-			});
-
-			valustreamRootNode.appendChild(valueStreamNode);
-		});
-	},
-
-	_createValueStreamNode : function(valuestreamData) {
-		var valueStreamLable = 'valuestream: ' + valuestreamData;
-		var valustreamTreeNode = Ext.create('MilestoneTreeModel', {
-			Name : valueStreamLable,
-			AcceptedLeafStoryCount : '',
-			LeafStoryCount : '',
-			StoryProgressPercent : '',
-			leaf : false,
-			expandable : true,
-			expanded : true,
-			iconCls : 'no-icon'
-		});
-
-		return valustreamTreeNode;
-	},
-
-	_createMilestoneNode : function(milestoneData) {
-		//console.log('Percentage Done rec: ', milestoneData.get('StoryProgressPercent').toString());
-		var targetProjectName = milestoneData.get('TargetProject') !== null ? milestoneData.get('TargetProject')._refObjectName : 'Global';
-
-		var milestoneTreeNode = Ext.create('MilestoneTreeModel', {
-			ObjectID : milestoneData.get('ObjectID'),
-			FormattedID : milestoneData.get('FormattedID'),
-			Name : milestoneData.get('Name'),
-			StartDate : milestoneData.get('StartDate'),
-			ActiveStartDate : milestoneData.get('ActiveStartDate'),
-			TargetDate : milestoneData.get('TargetDate'),
-			TargetProject : targetProjectName,
-			DisplayColor : milestoneData.get('DisplayColor'),
-			Notes : milestoneData.get('Notes'),
-			AdditionalReferences : milestoneData.get('AdditionalReferences'),
-			AssociatedTeams : milestoneData.get('AssociatedTeams'),
-			_ref : milestoneData.get('_ref'),
-			AcceptedLeafStoryCount : milestoneData.get('AcceptedLeafStoryCount').toString(),
-			LeafStoryCount : milestoneData.get('LeafStoryCount').toString(),
-			StoryProgressPercent : milestoneData.get('StoryProgressPercent').toString(),
-			FeaturesWithoutChildrenCount : milestoneData.get('FeaturesWithoutChildrenCount').toString(),
-			leaf : true,
-			expandable : false,
-			expanded : false,
-			iconCls : 'no-icon'
-		});
-
-		return milestoneTreeNode;
-	},
-
-	_getAllAssociatedMilestones : function(valuestream, milestoneStoreData) {
-		var milestoneColl = [];
-
-		Ext.Array.each(milestoneStoreData, function(milestone) {
-			var vsRecord = milestone.get('ValueStream');
-			vsRecord = (vsRecord !== null && vsRecord !== '') ? vsRecord : 'N/A';
-
-			if (vsRecord === valuestream) {
-				milestoneColl.push(milestone);
-			}
-		});
-
-		return milestoneColl;
-	},
-
-	_getVisibilityFilter : function() {
-		var visibilityCheckBox = Ext.getCmp('executiveVisibilityCheckbox');
-		return visibilityCheckBox.getValue();
-		//return true;
-	},
-
+	
 	/*========================= BurnUp Chart============================================================*/
 
 	_getMilestoneBurnupChart : function(milestoneRec, chartDiag) {
