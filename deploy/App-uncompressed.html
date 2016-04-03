@@ -258,6 +258,8 @@ Ext.define('CustomApp', {
     	var teamSelected = this.getSetting('teamPicker');
 		console.log('Get team selected Values: ', teamSelected);
 		var selectedProjStoreConfig = this._getAllExecutiveProjStoreConfig(teamSelected);
+		
+		this._setDefaultFilteringForDefinedUser();
 
 		this.down('#filterContainer').add({
 			xtype : 'rallycheckboxfield',
@@ -297,9 +299,69 @@ Ext.define('CustomApp', {
 				//render : this._onReady,
 				scope : this
 			}
+		},{
+			name : 'valueStreamPicker',
+			id: 'customValueStreamPicker',
+			xtype : 'rallyfieldvaluecombobox',
+			padding : '10, 5, 10, 5',
+			model : 'Milestone',
+			field : 'c_ValueStream',
+			fieldLabel : 'ValueStreams',
+			labelAlign : 'right',
+			width : 400,
+			multiSelect : true,
+			listeners : {
+				select: function(combo, records, eOpts){
+					if(records !== null){
+						this.selectedMultiVSFilter = this._getValueStreamString(records);
+						console.log('selected VS filters: ', this.selectedMultiVSFilter);
+					}
+				},
+				collapse: function(field, eOpts){
+					this._onReady();
+				},
+				//render : this._onReady,
+				scope : this
+			}
 		});
 		
 		this._loadAllMilestones();
+    },
+    
+    _setDefaultFilteringForDefinedUser: function(){
+    	var loggedUser = this.getContext().getUser();
+		console.log('Logged User Name: ', loggedUser.UserName);
+		
+		switch (loggedUser.UserName) {
+		    /*case "soumya.sikder@lexmark.com":
+		    	{
+		    		this.isDefaultUserSettingPresent = true;
+		    		this.defaultValueStreamSetting = "FPA,Integration,Other Industry";
+		    		this.defaultTeamFilterSetting = "/project/5822498311,/project/5103590994,/project/12207383723,/project/5825702196";
+		        	break;
+		    	}*/
+		    case "arpan.bandyopadhyay@lexmark.com":
+		    		this.isDefaultUserSettingPresent = true;
+		    		this.defaultValueStreamSetting = "FPA,Integration";
+		    		this.defaultTeamFilterSetting = "/project/5822498311,/project/5103590994,/project/12207383723";
+		        	break;
+		    case "deepan.biswas@lexmark.com":
+		    		this.isDefaultUserSettingPresent = true;
+		    		this.defaultValueStreamSetting = "FPA,Integration,Healthcare";
+		    		this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
+		        	break;
+		    default: 
+		       this.isDefaultUserSettingPresent = false;
+		}
+    },
+    
+    _getValueStreamString: function(records){
+    	var valuesteams = '';
+    	Ext.Array.each(records, function(vsRec){
+			if(vsRec.get('name') !== null)
+				valuesteams = valuesteams + vsRec.get('name') + ',';
+		});
+    	return (valuesteams !== '' && valuesteams.length > 1) ? valuesteams.substring(0, valuesteams.length-1) : valuesteams;
     },
     
     _getProjectRefString: function(values){
@@ -396,6 +458,9 @@ Ext.define('CustomApp', {
 		
 		milsetoneStore.load().then({
 		    success: this._loadArtifacts,
+		    error: function(error){
+		    	console.log('error loading milestone artifacts!');
+		    },
 		    scope: this
 		}).then({
 		    success: this._loadAllHierarchicalRequirements,
@@ -403,28 +468,40 @@ Ext.define('CustomApp', {
 		}).then({
 		    success: function(usRecords){
 		        //console.log('User Stories Records: ', usRecords);
-		        for(var i=0; i<usRecords.length; i++){
-		            var feature = this.featureArtifactColl[i];
-		            this.featureUserStoriesMappingColl.push({
-		                key: feature,
-		                value: usRecords[i]
-		            });
+		        
+		        if(usRecords !== null && usRecords !== undefined && usRecords.length > 0){
+		        	for(var i=0; i<usRecords.length; i++){
+			            var feature = this.featureArtifactColl[i];
+			            this.featureUserStoriesMappingColl.push({
+			                key: feature,
+			                value: usRecords[i]
+			            });
+			        }
+			        
+			        //console.log('Feature Artifacts & US Mapping: ', this.featureUserStoriesMappingColl);
+			        //console.log('Milestone Collection: ', this.milestoneColl);
+			        //console.log('Milestone Artifact Mapping: ', this.milestoneArtifactMappingColl);
+			        
+			        this._loadMilestoneUserStoriesFromMapping();
+			        
+			        //console.log('Milestone Userstories Mapping: ', this.milestoneUserStoriesMappingColl);
+			        //console.log('Milestone with features without child Mapping: ', this.milestoneFeatureWithoutChildrenCountMappingColl);
+			        
+			        this._createMilestoneDataModelForDisplay();
+			        
+			        console.log('Filtered Milestone Data: ', this.filteredMilestoneDataCollection);
+			        
+			        if(this.filteredMilestoneDataCollection !== null && this.filteredMilestoneDataCollection !== undefined && this.filteredMilestoneDataCollection.length > 0)
+			        	this._organiseMilestoneBasedOnValuestream(this.filteredMilestoneDataCollection);
+			        else{
+			        		this._displayWithoutOutMilestones();
+			        }
+		        }
+		        else{
+		        	
+		        	this._displayWithoutOutMilestones();
 		        }
 		        
-		        //console.log('Feature Artifacts & US Mapping: ', this.featureUserStoriesMappingColl);
-		        //console.log('Milestone Collection: ', this.milestoneColl);
-		        //console.log('Milestone Artifact Mapping: ', this.milestoneArtifactMappingColl);
-		        
-		        this._loadMilestoneUserStoriesFromMapping();
-		        
-		        //console.log('Milestone Userstories Mapping: ', this.milestoneUserStoriesMappingColl);
-		        //console.log('Milestone with features without child Mapping: ', this.milestoneFeatureWithoutChildrenCountMappingColl);
-		        
-		        this._createMilestoneDataModelForDisplay();
-		        
-		        console.log('Filtered Milestone Data: ', this.filteredMilestoneDataCollection);
-		        
-		        this._organiseMilestoneBasedOnValuestream(this.filteredMilestoneDataCollection);
 		        
 		    },
 		    failure: function(error){
@@ -432,6 +509,20 @@ Ext.define('CustomApp', {
 		    },
 		    scope: this
 		});
+    },
+    
+    _displayWithoutOutMilestones: function(){
+    	var gridContainer = this.getComponent('gridContainer');
+		if (gridContainer !== null) {
+			gridContainer.removeAll();
+			gridContainer.add({
+		        xtype: 'label',
+		        text: 'Sorry! No Milestone records found. Please try with different settings.',
+		        margin: '0 0 0 10'
+		    });
+		}
+		
+		Ext.getBody().unmask();
     },
     
     _createMilestoneDataModelForDisplay: function(){
@@ -857,6 +948,9 @@ Ext.define('CustomApp', {
 	 	if(this.selectedMultiTeamFilter !== null && this.selectedMultiTeamFilter !== undefined && this.selectedMultiTeamFilter !== ''){
 			teamPickerSelected = this.selectedMultiTeamFilter;
 		}
+		else if(this.isDefaultUserSettingPresent && this.defaultTeamFilterSetting !== null && this.defaultTeamFilterSetting !== undefined && this.defaultTeamFilterSetting !== null){
+			teamPickerSelected = this.defaultTeamFilterSetting;
+		}
 		
 		return teamPickerSelected;
     },
@@ -1076,6 +1170,10 @@ Ext.define('CustomApp', {
     },
     
     _createMilestoneStoreFilter : function() {
+    	
+    	console.log('creating milestone filter...!');
+    	
+    	
 		this.projectMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
 			property : 'TargetDate',
 			operator : '>=',
@@ -1101,10 +1199,18 @@ Ext.define('CustomApp', {
 				value : endDate
 			}));
 		}
-
+		
+		//determining ValueStream filtering.
 		var vsSelectedValues = this.getSetting('valueStreamPicker');
+		
+		if(this.selectedMultiVSFilter !== null && this.selectedMultiVSFilter !== undefined && this.selectedMultiVSFilter.length > 0){
+			vsSelectedValues = this.selectedMultiVSFilter;
+		}
+		else if(this.isDefaultUserSettingPresent && this.defaultValueStreamSetting !== null && this.defaultValueStreamSetting !== undefined && this.defaultValueStreamSetting !== ''){
+			vsSelectedValues = this.defaultValueStreamSetting;
+		}
+
 		var vsFilters = vsSelectedValues.split(',');
-		//console.log('valuesteam settings value: ', vsFilters);
 
 		this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
 			property : 'c_ValueStream',
@@ -1123,66 +1229,21 @@ Ext.define('CustomApp', {
 	},
 	
 	_loadArtifacts : function(milestoneRecords) {
+		
+		console.log('Loading artifacts...!');
+		
 		var promises = [];
 		var that = this;
 		this.milestoneColl = milestoneRecords;
+		
+		//console.log('Milestone records! ', this.milestoneColl);
 
-		Ext.Array.each(milestoneRecords, function(milestone) {
-
-			var artifactStore = Ext.create('Rally.data.wsapi.artifact.Store', {
-				models : [ 'portfolioitem/feature', 'defect', 'userstory' ],
-				context : {
-					workspace : that.getContext().getWorkspace()._Ref,
-					project : null,
-					limit : Infinity,
-					projectScopeUp : false,
-					projectScopeDown : true
-				},
-				filters : [ {
-					property : 'Milestones.ObjectID',
-					operator : '=',
-					value : milestone.get('ObjectID')
-				} ]
-			});
-
-			promises.push(artifactStore.load());
-
-		});
-
-		return Deft.Promise.all(promises);
-	},
+		if(this.milestoneColl !== null && this.milestoneColl.length > 0)
+		{
+				Ext.Array.each(milestoneRecords, function(milestone) {
 	
-	_loadAllHierarchicalRequirements : function(artifactCollRecs) {
-	    //console.log('Artifacts collection: ', artifactCollRecs);
-	    
-	    for(var i=0; i < artifactCollRecs.length; i++){
-	        var milestone = this.milestoneColl[i];
-	        
-	        this.milestoneArtifactMappingColl.push({
-	            key: milestone,
-	            value: artifactCollRecs[i]
-	        });
-	    }
-	    
-	    var artifactColl = _.flatten(artifactCollRecs);
-	    this.featureArtifactColl = [];
-		var promises = [];
-		var that = this;
-
-		Ext.Array.each(artifactColl, function(artifact) {
-			var itemType = artifact.get('_type');
-			if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
-				var project = artifact.get('Project');
-				if (project && _.contains(that.allAssociatedProjectColl, project))
-					that.allAssociatedProjectColl.push(project);
-			} 
-			else 
-			{
-			    that.featureArtifactColl.push(artifact);
-			    
-				var hierarchicalrequirementStore = Ext.create('Rally.data.wsapi.Store', {
-					model : 'HierarchicalRequirement',
-					fetch : [ 'ObjectID', 'FormattedID', 'Name', 'Project', 'Feature', 'ScheduleState'],
+				var artifactStore = Ext.create('Rally.data.wsapi.artifact.Store', {
+					models : [ 'portfolioitem/feature', 'defect', 'userstory' ],
 					context : {
 						workspace : that.getContext().getWorkspace()._Ref,
 						project : null,
@@ -1191,16 +1252,79 @@ Ext.define('CustomApp', {
 						projectScopeDown : true
 					},
 					filters : [ {
-						property : 'Feature.ObjectID',
+						property : 'Milestones.ObjectID',
 						operator : '=',
-						value : artifact.get('ObjectID')
+						value : milestone.get('ObjectID')
 					} ]
 				});
-
-				promises.push(hierarchicalrequirementStore.load());
-			}
-
-		});
+	
+				promises.push(artifactStore.load());
+	
+			});
+			
+			return Deft.Promise.all(promises);
+		}
+		else
+		{
+			console.log('No milestones records...so no artifacts!');
+			this._displayWithoutOutMilestones();
+		}
+		
+	},
+	
+	_loadAllHierarchicalRequirements : function(artifactCollRecs) {
+	    //console.log('loading hierarchicalrequirements..... ', artifactCollRecs);
+	    
+	    this.featureArtifactColl = [];
+		var promises = [];
+		var that = this;
+		
+	    if(artifactCollRecs !== null && artifactCollRecs !== undefined && artifactCollRecs.length > 0){
+	    	for(var i=0; i < artifactCollRecs.length; i++){
+		        var milestone = this.milestoneColl[i];
+		        
+		        this.milestoneArtifactMappingColl.push({
+		            key: milestone,
+		            value: artifactCollRecs[i]
+		        });
+		    }
+		    
+		    
+	    	var artifactColl = _.flatten(artifactCollRecs);
+	
+			Ext.Array.each(artifactColl, function(artifact) {
+				var itemType = artifact.get('_type');
+				if (itemType == 'hierarchicalrequirement' || itemType == 'defect') {
+					var project = artifact.get('Project');
+					if (project && _.contains(that.allAssociatedProjectColl, project))
+						that.allAssociatedProjectColl.push(project);
+				} 
+				else 
+				{
+				    that.featureArtifactColl.push(artifact);
+				    
+					var hierarchicalrequirementStore = Ext.create('Rally.data.wsapi.Store', {
+						model : 'HierarchicalRequirement',
+						fetch : [ 'ObjectID', 'FormattedID', 'Name', 'Project', 'Feature', 'ScheduleState'],
+						context : {
+							workspace : that.getContext().getWorkspace()._Ref,
+							project : null,
+							limit : Infinity,
+							projectScopeUp : false,
+							projectScopeDown : true
+						},
+						filters : [ {
+							property : 'Feature.ObjectID',
+							operator : '=',
+							value : artifact.get('ObjectID')
+						} ]
+					});
+	
+					promises.push(hierarchicalrequirementStore.load());
+				}
+	
+			});
+	    }
 
 		return Deft.Promise.all(promises);
 	},
