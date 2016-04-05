@@ -171,7 +171,8 @@ Ext.define('CustomApp', {
     componentCls: 'app',
     config : {
 		defaultSettings : {
-			valueStreamPicker : 'FPA, Integration'
+			valueStreamPicker : 'FPA,Integration,Healthcare',
+			teamPicker: '/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837'
 		}
 	},
 	
@@ -248,89 +249,233 @@ Ext.define('CustomApp', {
     launch: function() {
     	var teamSelected = this.getSetting('teamPicker');
 		console.log('Get team selected Values: ', teamSelected);
-		var selectedProjStoreConfig = this._getAllExecutiveProjStoreConfig(teamSelected);
 		
-		this._setDefaultFilteringForDefinedUser();
-
-		this.down('#filterContainer').add({
-			xtype : 'rallycheckboxfield',
-			id : 'executiveVisibilityCheckbox',
-			boxLabel : 'Show Executive Visibility Only',
-			labelWidth : 200,
-			padding : '10, 5, 10, 5',
-			checked : false,
-			listeners : {
-				change : this._onReady,
-				//render : this._onReady,
-				scope : this
-			}
-		}, {
-			xtype : 'rallymultiobjectpicker',
-			id : 'teamFilterMultiPicker',
-			padding : '10, 5, 10, 5',
-			modelType : 'Project',
-			fieldLabel : 'Teams',
-			labelAlign : 'right',
-			width : 400,
-			filterFieldName: 'Name',
-			storeConfig : selectedProjStoreConfig,
-            listCfg: {
-            	displayField: 'Name'
-            },
-            stateful: false,
-            listeners : {
-				selectionchange : function(picker, values, eOpts){
-					if(values !== null){
-						this.selectedMultiTeamFilter = this._getProjectRefString(values);
-					}
-				},
-				collapse: function(field, eOpts){
-					this._onReady();
-				},
-				//render : this._onReady,
-				scope : this
-			}
-		},{
-			name : 'valueStreamPicker',
-			id: 'customValueStreamPicker',
-			xtype : 'rallyfieldvaluecombobox',
-			padding : '10, 5, 10, 5',
-			model : 'Milestone',
-			field : 'c_ValueStream',
-			fieldLabel : 'ValueStreams',
-			labelAlign : 'right',
-			width : 400,
-			multiSelect : true,
-			listeners : {
-				select: function(combo, records, eOpts){
-					if(records !== null){
-						this.selectedMultiVSFilter = this._getValueStreamString(records);
-						console.log('selected VS filters: ', this.selectedMultiVSFilter);
-					}
-				},
-				collapse: function(field, eOpts){
-					this._onReady();
-				},
-				//render : this._onReady,
-				scope : this
-			}
-		});
+		var executiveVisibityFilter = {
+				xtype : 'rallycheckboxfield',
+				id : 'executiveVisibilityCheckbox',
+				boxLabel : 'Show Executive Visibility Only',
+				labelWidth : 200,
+				padding : '10, 5, 10, 5',
+				checked : false,
+				listeners : {
+					change : this._onReady,
+					//render : this._onReady,
+					scope : this
+				}
+			};
 		
-		this._loadAllMilestones();
+		var teamFilter = {
+				xtype : 'rallymultiobjectpicker',
+				id : 'teamFilterMultiPicker',
+				padding : '10, 5, 10, 5',
+				modelType : 'Project',
+				fieldLabel : 'Teams',
+				labelAlign : 'right',
+				width : 400,
+				filterFieldName: 'Name',
+	            listCfg: {
+	            	displayField: 'Name'
+	            },
+	            stateful: false,
+	            listeners : {
+					selectionchange : function(picker, values, eOpts){
+						if(values !== null){
+							this.selectedMultiTeamFilter = this._getProjectRefString(values);
+							picker.setValue(values);
+							this._setFilterMessage(false);
+						}
+					},
+					collapse: function(field, eOpts){
+						this._onReady();
+					},
+					//render : this._onReady,
+					scope : this
+				}
+			};
+		
+		var valuestreamFilter = {
+				name : 'valueStreamPicker',
+				id: 'customValueStreamPicker',
+				xtype : 'rallyfieldvaluecombobox',
+				padding : '10, 5, 10, 5',
+				model : 'Milestone',
+				field : 'c_ValueStream',
+				fieldLabel : 'ValueStreams',
+				labelAlign : 'right',
+				emptyText: 'click to select',
+				multiSelect: true,
+				width : 400,
+				listeners : {
+					select: function(combo, records, eOpts){
+						if(records !== null){
+							this.selectedMultiVSFilter = this._getValueStreamString(records);
+							combo.setValue(records);
+							this._setFilterMessage(false);
+						}
+					},
+					collapse: function(field, eOpts){
+						this._onReady();
+					},
+					//render : this._onReady,
+					scope : this
+				}
+			};
+			
+		var filterPanelContaier = {
+				xtype : "container",
+				itemId : "filterPanelContainer",
+				id : "filterPanelContainer",
+				layout : {
+					type : 'hbox',
+					align : 'left'
+				},
+				items:[executiveVisibityFilter, teamFilter, valuestreamFilter]
+			};
+		
+		var filterMessageDisplay = {
+		        xtype: 'label',
+		        id: 'filterMessage',
+		        html: "<div>Loading Milestones for filtered ValueStreams and Teams.........</div>",
+		        margin: '0 0 0 10'
+		    };
+		
+		var filterPanel = {
+			xtype: "panel",
+			width: "98%",
+			margin: '10 5 10 5',
+			collapsible: true,
+			layout: {
+				type: 'vbox',
+				align: 'stretch',
+				padding: 5
+			},
+			items:[{
+				xtype: "panel",
+				width: "98%",
+				margin: '0 0 5 5',
+				title: 'Filters',
+				layout: {
+					type: 'vbox',
+					align: 'stretch',
+					padding: 5
+				},
+				items:[filterPanelContaier,
+				{
+					xtype: "panel",
+					width: "98%",
+					margin: '0 0 5 5',
+					title: 'Filter Criteria',
+					layout: {
+						type: 'vbox',
+						align: 'stretch',
+						padding: 5
+					},
+					items:[filterMessageDisplay]
+				}]
+			}]
+		};
+			
+		this.down('#filterContainer').add(filterPanel);
+		
+		this._getAllValidWorkspaceProjects();
     },
     
-    _setDefaultFilteringForDefinedUser: function(){
+    _getAllValidWorkspaceProjects: function(){
+    	this.allWorkspaceProjectColl = [];
+    	var projectStore = 	Ext.create('Rally.data.wsapi.Store', {
+    				model: 'Project',
+		            fetch: ['Name', 'State', '_ref'],
+		            autoLoad: true,
+		            compact: false,
+		            context: {
+		                workspace: this.getContext().getWorkspace()._Ref,
+		                projectScopeUp: false,
+		                projectScopeDown: true
+		            },
+		            limit: Infinity,
+		            filters:[{
+		                property:'State',
+		                operator: '=',
+		                value: 'Open'
+		            }],
+		            sorters: [{
+		                property: 'Name',
+		                direction: 'ASC'
+		            }],
+					listeners: {
+						load: function(store, data, success) {
+							 var that = this;
+							 console.log('Project Data: ', data);
+							 Ext.getBody().mask('Loading...');
+							 
+	                         Ext.Array.each(data, function(projData) {
+	                             var name = projData.get('Name');
+	                             var ref = projData.get('_ref');
+	                             
+	                             that.allWorkspaceProjectColl.push({
+	                             	key: ref,
+	                             	value: name
+	                             });
+	                         });
+	                         
+	                        console.log('All Execution Project Coll: ', this.allWorkspaceProjectColl);
+	                        
+	                        this._setDefaultFilteringValues();
+	                        
+	                        this._setFilterMessage(true);
+		
+							this._loadAllMilestones();
+	                    },
+	                    scope:this
+					}
+			});
+    },
+    
+    _setFilterMessage: function(isDefaultValues){
+    	
+    	var vsValues = isDefaultValues ? this.defaultValueStreamSetting : 
+    									((this.selectedMultiVSFilter !== null && this.selectedMultiVSFilter !== undefined && this.selectedMultiVSFilter !== '') ? this.selectedMultiVSFilter : this.defaultValueStreamSetting);
+    	var teamRefValues = isDefaultValues ? this.defaultTeamFilterSetting : 
+    										  ((this.selectedMultiTeamFilter !== null && this.selectedMultiTeamFilter !== undefined && this.selectedMultiTeamFilter !== '') ? this.selectedMultiTeamFilter : this.defaultTeamFilterSetting);
+    	
+    	var vsNameValues = (vsValues !== null && vsValues !== undefined) ? vsValues : 'No Values Streams selected';
+    	var teamNameValues = (teamRefValues !== null && teamRefValues !== undefined) ? this._getProjectName(teamRefValues) : 'No Teams selected';
+    	
+    	var filterMsg = "<div>Determing Milestones for ValueStream(s): <b>" + vsNameValues + "</b> and Team(s): <b>" + teamNameValues +"</b></div>";
+		Ext.getCmp('filterMessage').update(filterMsg);
+    },
+    
+    _getProjectName: function(teamRefValues){
+    	var projNameStrColl = '';
+    	var teamRefColl = teamRefValues.split(',');
+    	var that = this;
+    	Ext.Array.each(teamRefColl, function(projRef){
+    		var projName = that._searchProjectByRef(projRef);
+    		if(projName !== ''){
+    			projNameStrColl = projNameStrColl + projName + ', ';
+    		}
+    	});
+    	
+    	return (projNameStrColl !== '' && projNameStrColl.length > 1) ? projNameStrColl.substring(0, projNameStrColl.length-2) : 'No Project found';
+    },
+    
+    _searchProjectByRef: function(ref){
+    	var name = '';
+    	Ext.Array.each(this.allWorkspaceProjectColl, function(thisProj){
+    		if(thisProj.key === ref){
+    			name = thisProj.value;
+    			return
+    		}
+    	});
+    	
+    	return name;
+    },
+    
+    _setDefaultFilteringValues: function(){
     	var loggedUser = this.getContext().getUser();
 		console.log('Logged User Name: ', loggedUser.UserName);
 		
 		switch (loggedUser.UserName) {
-		    /*case "soumya.sikder@lexmark.com":
-		    	{
-		    		this.isDefaultUserSettingPresent = true;
-		    		this.defaultValueStreamSetting = "FPA,Integration,Other Industry";
-		    		this.defaultTeamFilterSetting = "/project/5822498311,/project/5103590994,/project/12207383723,/project/5825702196";
-		        	break;
-		    	}*/
 		    case "arpan.bandyopadhyay@lexmark.com":
 		    		this.isDefaultUserSettingPresent = true;
 		    		this.defaultValueStreamSetting = "FPA,Integration";
@@ -342,7 +487,9 @@ Ext.define('CustomApp', {
 		    		this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
 		        	break;
 		    default: 
-		       this.isDefaultUserSettingPresent = false;
+		       this.isDefaultUserSettingPresent = true;
+		       this.defaultValueStreamSetting = "FPA,Integration,Healthcare";
+		       this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
 		}
     },
     
@@ -365,63 +512,13 @@ Ext.define('CustomApp', {
 		return (teamList !== '' && teamList.length > 1) ? teamList.substring(0, teamList.length-1) : teamList;
 	},
 	
-	_getAllExecutiveProjStoreConfig: function(teamSelected){
-		
-		var teamMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
-				property : 'State',
-				operator : '=',
-				value : 'Open'
-			});
-			
-		if(teamSelected !== null && teamSelected !== undefined && teamSelected !== ''){
-			var teamFilters = teamSelected.split(',');
-	
-			teamMilestoneFilter = teamMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
-				property : '_ref',
-				operator : 'contains',
-				value : teamFilters[0]
-			}));
-			
-			if (teamFilters.length > 1) {
-				for (var i = 1; i < teamFilters.length; i++) {
-					teamMilestoneFilter = teamMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
-						property : '_ref',
-						operator : 'contains',
-						value : teamFilters[i]
-					}));
-				}
-			}
-		}
-		
-		var storeConfig = {
-				autoLoad: false,
-				fetch: ['Name', 'State'],
-				pageSize: 200,
-                context : {
-					project: '/project/1694641494',
-					projectScopeUp : false,
-					projectScopeDown : true
-				},
-				filters: teamMilestoneFilter,
-                sorters : [{
-					property : 'Name',
-					direction : 'ASC'
-				}],
-				remoteGroup: false,
-				remoteSort: false,
-				remoteFilter: false,
-				limit : Infinity
-            };
-        
-        return storeConfig;
-	},
-	
 	_onReady : function() {
 
 		this._loadAllMilestones();
 	},
     
     _loadAllMilestones: function(){
+    	
     	Ext.getBody().mask('Loading...');
     	
         this._createMilestoneStoreFilter();
@@ -469,14 +566,7 @@ Ext.define('CustomApp', {
 			            });
 			        }
 			        
-			        //console.log('Feature Artifacts & US Mapping: ', this.featureUserStoriesMappingColl);
-			        //console.log('Milestone Collection: ', this.milestoneColl);
-			        //console.log('Milestone Artifact Mapping: ', this.milestoneArtifactMappingColl);
-			        
 			        this._loadMilestoneUserStoriesFromMapping();
-			        
-			        //console.log('Milestone Userstories Mapping: ', this.milestoneUserStoriesMappingColl);
-			        //console.log('Milestone with features without child Mapping: ', this.milestoneFeatureWithoutChildrenCountMappingColl);
 			        
 			        this._createMilestoneDataModelForDisplay();
 			        
@@ -497,6 +587,7 @@ Ext.define('CustomApp', {
 		    },
 		    failure: function(error){
 		        console.log('Error loading milestones!');
+		        Ext.getBody().unmask();
 		    },
 		    scope: this
 		});
@@ -505,12 +596,24 @@ Ext.define('CustomApp', {
     _displayWithoutOutMilestones: function(){
     	var gridContainer = this.getComponent('gridContainer');
 		if (gridContainer !== null) {
-			gridContainer.removeAll();
+			gridContainer.removeAll(true);
+			
 			gridContainer.add({
-		        xtype: 'label',
-		        text: 'Sorry! No Milestone records found. Please try with different settings.',
-		        margin: '0 0 0 10'
-		    });
+				xtype: "panel",
+				width: "98%",
+				margin: '0 0 5 5',
+				title: 'Miletsone Dashboard',
+				layout: {
+					type: 'vbox',
+					align: 'stretch',
+					padding: 5
+				},
+				items:[{
+			        xtype: 'label',
+			        text: 'Sorry! No Milestone records found. Please try with different settings.',
+			        margin: '0 0 0 10'
+			    }]
+			});
 		}
 		
 		Ext.getBody().unmask();
@@ -700,8 +803,6 @@ Ext.define('CustomApp', {
 			rowLines : true,
 			displayField : 'Name',
 			rootVisible : false,
-			width : this.getWidth(true),
-			height : this.getHeight(true), // Extra scroll for individual sections:
 			viewConfig : {
 				getRowClass : function(record, index) {
 					var nameRecord = Ext.String.format("{0}", record.get('Name'));
@@ -892,8 +993,20 @@ Ext.define('CustomApp', {
 
 		var gridContainer = this.getComponent('gridContainer');
 		if (gridContainer !== null) {
-			gridContainer.removeAll();
-			gridContainer.add(valuestreamMilestoneTreePanel);
+			gridContainer.removeAll(true);
+			
+			gridContainer.add({
+				xtype: "panel",
+				width: "98%",
+				margin: '0 0 5 5',
+				title: 'Miletsone Dashboard',
+				layout: {
+					type: 'vbox',
+					align: 'stretch',
+					padding: 5
+				},
+				items: [valuestreamMilestoneTreePanel]
+			});
 		}
 		
 		Ext.getBody().unmask();
@@ -1227,7 +1340,7 @@ Ext.define('CustomApp', {
 		var that = this;
 		this.milestoneColl = milestoneRecords;
 		
-		//console.log('Milestone records! ', this.milestoneColl);
+		console.log('Milestone records! ', this.milestoneColl);
 
 		if(this.milestoneColl !== null && this.milestoneColl.length > 0)
 		{
