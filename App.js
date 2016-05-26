@@ -1472,47 +1472,27 @@ Ext.define('CustomApp', {
 	},
 
 	_loadPIsInMilestone : function() {
-		var that = this;
-		return Ext.create('Rally.data.wsapi.Store', {
-			model : 'TypeDefinition',
-			autoLoad : true,
-			fetch : [ 'TypePath' ],
-			filters : [ {
-				property : 'Parent.Name',
-				value : 'Portfolio Item'
-			}, {
-				property : 'Ordinal',
-				value : 0
-			} ]
-		}).load().then(
-				{
-					success : function(records) {
-						this.piType = records[0].get('TypePath');
-						return Ext.create(
-								'Rally.data.wsapi.Store',
-								{
-									model : this.piType,
-									fetch : [ 'ObjectID', 'FormattedID', 'Project', 'Name', 'PreliminaryEstimate', 'ActualStartDate', 'PlannedEndDate', 'AcceptedLeafStoryPlanEstimateTotal',
-											'LeafStoryPlanEstimateTotal' ],
-									filters : [ {
-										property : 'Milestones.ObjectID',
-										operator : '=',
-										value : this.selectedMilestone
-									//TODO: Need to Populate this
-									} ],
-									context : {
-										project : null
-									},
-									limit : Infinity
-								}).load().then({
-							success : function(piRecords) {
-								this.piRecords = piRecords;
-							},
-							scope : this
-						});
-					},
-					scope : this
-				});
+        var that = this;
+        return Ext.create('Rally.data.wsapi.artifact.Store', {
+                    models : [ 'portfolioitem/feature', 'defect', 'userstory' ],
+                    context : {
+                                workspace : that.getContext().getWorkspace()._Ref,
+                                project : null,
+                                limit : Infinity,
+                                projectScopeUp : false,
+                                projectScopeDown : true
+                    },
+                    filters : [ {
+                                property : 'Milestones.ObjectID',
+                                operator : '=',
+                                value : that.selectedMilestone
+                    } ]
+        }).load().then({
+                    success : function(artifacts) {
+                                this.piRecords = artifacts;
+                    },
+                    scope : this
+        });
 	},
 
 	_getChart : function(isMileStone, piRecord, chartDiag) {
