@@ -282,9 +282,6 @@ Ext.define('CustomApp', {
 						this.selectedMultiTeamFilter = this._getProjectRefString(values);
 					}
 				},
-				collapse: function(field, eOpts){
-					this._onReady();
-				},
 				//render : this._onReady,
 				scope : this
 			}
@@ -306,13 +303,16 @@ Ext.define('CustomApp', {
 						console.log('selected VS filters: ', this.selectedMultiVSFilter);
 					}
 				},
-				collapse: function(field, eOpts){
-					this._onReady();
-				},
 				//render : this._onReady,
 				scope : this
 			}
-		});
+		},{
+	        xtype: 'rallybutton',
+	        text: 'Filter',
+	        handler: function() {
+	            this._onReady();
+	        }
+	    });
 		
 		this._loadAllMilestones();
     },

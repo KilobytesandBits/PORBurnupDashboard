@@ -294,9 +294,6 @@ Ext.define('CustomApp', {
 							this._setFilterMessage(false);
 						}
 					},
-					collapse: function(field, eOpts){
-						this._onReady();
-					},
 					//render : this._onReady,
 					scope : this
 				}
@@ -322,13 +319,24 @@ Ext.define('CustomApp', {
 							this._setFilterMessage(false);
 						}
 					},
-					collapse: function(field, eOpts){
-						this._onReady();
-					},
 					//render : this._onReady,
 					scope : this
 				}
 			};
+			
+		var filterButton = {
+			name : 'milestoneFilterButton',
+			id: 'milestoneFilterButton',
+	        xtype: 'rallybutton',
+	        text: 'Filter',
+	        margin: '5, 0, 0, 10',
+	        padding : '5, 5, 5, 5',
+	        width : 50,
+	        handler: function() {
+	            this._onReady();
+	        },
+	        scope : this
+	    };
 			
 		var filterPanelContaier = {
 				xtype : "container",
@@ -338,7 +346,7 @@ Ext.define('CustomApp', {
 					type : 'hbox',
 					align : 'left'
 				},
-				items:[executiveVisibityFilter, teamFilter, valuestreamFilter]
+				items:[executiveVisibityFilter, teamFilter, valuestreamFilter, filterButton]
 			};
 		
 		var filterMessageDisplay = {
@@ -645,6 +653,37 @@ Ext.define('CustomApp', {
                 that.filteredMilestoneDataCollection.push(milestoneCustomData);
             }
         });
+    },
+    
+    _getAllAssociatedUserStoriesForMilestone: function(selectedMilestoneId){
+    	 var that = this;
+    	 var selectedUSRecColl = [];
+    	 
+    	 console.log('MI and US Mapping Coll: ', this.milestoneArtifactMappingColl);
+    	 
+    	 console.log('selectedMilestoneId: ', selectedMilestoneId);
+        
+        _.each(this.milestoneUserStoriesMappingColl, function(milestoneUSRec){
+            var milestoneRec = milestoneUSRec.key;
+            var milestoneUSColl = milestoneUSRec.value;
+            var milestoneId = milestoneRec.get('ObjectID');
+            
+            if(milestoneUSColl.length > 0 && (milestoneUSColl.length === 6 || milestoneUSColl.length === 3)){
+            	console.log('Matching Records: ', milestoneRec);
+            	console.log('Matching US Records: ', milestoneUSColl);
+            	
+            	console.log('Lookingup MI Records: ', milestoneId);
+            }
+    
+            if(_.isEqual(milestoneId, selectedMilestoneId))
+            {
+            	selectedUSRecColl = milestoneUSColl;
+            	console.log('Mapping US Rec: ', selectedUSRecColl);
+            	return selectedUSRecColl;
+            }
+        });
+        
+        return selectedUSRecColl;
     },
     
     _organiseMilestoneBasedOnValuestream : function(filteredMilestonesArr) {
@@ -1606,7 +1645,7 @@ Ext.define('CustomApp', {
 		var chartDiagId = chartDiag.getId();
 
 		if (milestoneRec !== null) {
-			//console.log('milestoneData: ', milestoneRec);
+			console.log('milestoneData: ', milestoneRec);
 
 			this.selectedMilestone = milestoneRec.get('ObjectID');
 			this.selectedMilestoneObj = milestoneRec;
@@ -1667,48 +1706,28 @@ Ext.define('CustomApp', {
 	},
 
 	_loadPIsInMilestone : function() {
-		var that = this;
-		return Ext.create('Rally.data.wsapi.Store', {
-			model : 'TypeDefinition',
-			autoLoad : true,
-			fetch : [ 'TypePath' ],
-			filters : [ {
-				property : 'Parent.Name',
-				value : 'Portfolio Item'
-			}, {
-				property : 'Ordinal',
-				value : 0
-			} ]
-		}).load().then(
-				{
-					success : function(records) {
-						this.piType = records[0].get('TypePath');
-						return Ext.create(
-								'Rally.data.wsapi.Store',
-								{
-									model : this.piType,
-									fetch : [ 'ObjectID', 'FormattedID', 'Project', 'Name', 'PreliminaryEstimate', 'ActualStartDate', 'PlannedEndDate', 'AcceptedLeafStoryPlanEstimateTotal',
-											'LeafStoryPlanEstimateTotal' ],
-									filters : [ {
-										property : 'Milestones.ObjectID',
-										operator : '=',
-										value : this.selectedMilestone
-									//TODO: Need to Populate this
-									} ],
-									context : {
-										project : null
-									},
-									limit : Infinity
-								}).load().then({
-							success : function(piRecords) {
-								this.piRecords = piRecords;
-							},
-							scope : this
-						});
-					},
-					scope : this
-				});
-	},
+                var that = this;
+                return Ext.create('Rally.data.wsapi.artifact.Store', {
+                            models : [ 'portfolioitem/feature', 'defect', 'userstory' ],
+                            context : {
+                                        workspace : that.getContext().getWorkspace()._Ref,
+                                        project : null,
+                                        limit : Infinity,
+                                        projectScopeUp : false,
+                                        projectScopeDown : true
+                            },
+                            filters : [ {
+                                        property : 'Milestones.ObjectID',
+                                        operator : '=',
+                                        value : that.selectedMilestone
+                            } ]
+                }).load().then({
+                            success : function(artifacts) {
+                                        this.piRecords = artifacts;
+                            },
+                            scope : this
+                });
+    },
 
 	_getChart : function(isMileStone, piRecord, chartDiag) {
 		var that = this;
