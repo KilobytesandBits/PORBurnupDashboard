@@ -1698,6 +1698,11 @@ Ext.define('CustomApp',
 						if (burnupChart !== null) {
 
 							chartDiag.removeAll(true);
+							
+							if (chartDiag.down('rallychart')) {
+								chartDiag.down('rallychart').destroy();
+							} 
+							
 							chartDiag.add(burnupChart);
 
 							var that = this;
@@ -1857,13 +1862,26 @@ Ext.define('CustomApp',
 			 */
 
 			_getChartConfig : function(isMileStone, piRecord) {
+				var chartTitle = ' ';
+
+				if (isMileStone) {
+					chartTitle = 'Milestone Burnup';
+				} else {
+					if (piRecord.data.c_ClassofService !== null && piRecord.data.c_ClassofService !== '' && piRecord.data.c_ClassofService !== undefined) {
+						chartTitle = piRecord.data.c_ClassofService + ' - ';
+					}
+
+					chartTitle += piRecord.data.FormattedID + ' - ' + piRecord.data.Name;
+				}
+				
+				
 				return {
 					chart : {
 						defaultSeriesType : 'area',
 						zoomType : 'xy'
 					},
 					title : {
-						text : isMileStone ? 'Milestone Burnup' : piRecord.data.FormattedID + ' - ' + piRecord.data.Name
+						text : chartTitle
 					},
 					xAxis : {
 						categories : [],
@@ -2036,8 +2054,8 @@ Ext.define('CustomApp',
 			_drawProjectWiseViewGrid : function(gridStore, projWiseStatusDiag) {
 				var that = this;
 
-				if (that.down('rallygridboard')) {
-					that.down('rallygridboard').destroy();
+				if (projWiseStatusDiag.down('rallygridboard')) {
+					projWiseStatusDiag.down('rallygridboard').destroy();
 				}
 
 				projWiseStatusDiag.add({
