@@ -818,32 +818,32 @@ Ext.define('CustomApp',
 					model : 'MilestoneTreeModel',
 					root : valueStreamRootNode
 				});
-
-				this.chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+				
+				/*this.chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
 					autoShow : false,
 					draggable : false,
 					closable : true,
-					closeAction : 'hide',
+					closeAction : 'destroy',
 					padding : 10,
 					width : 800,
 					height : 500,
 					autoScroll : true,
 					id : 'Burnup_Chart_Diag'
 				});
-				this.chartDiag.hide();
+				this.chartDiag.hide();*/
 				
-				this.projWiseStatusDiag = Ext.create('Rally.ui.dialog.Dialog', {
+				/*this.projWiseStatusDiag = Ext.create('Rally.ui.dialog.Dialog', {
 					autoShow : false,
 					draggable : false,
 					closable : true,
-					closeAction : 'hide',
+					closeAction : 'destroy',
 					padding : 10,
 					width : 800,
 					height : 500,
 					autoScroll : true,
 					id : 'Project_Wise_Status_Diag'
 				});
-				this.projWiseStatusDiag.hide();
+				this.projWiseStatusDiag.hide();*/
 
 				var valuestreamMilestoneTreePanel = Ext.create('Ext.tree.Panel', {
 					id : 'milestonesTreePanel',
@@ -988,7 +988,7 @@ Ext.define('CustomApp',
 								if (record.get('FormattedID') !== null && record.get('FormattedID') !== "") {
 									var dialogTitle = record.get('FormattedID') + ': Additional References';
 									if (record.get('AdditionalReferences') !== null && record.get('AdditionalReferences') !== '') {
-										var chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+										var refDiag = Ext.create('Rally.ui.dialog.Dialog', {
 											autoShow : true,
 											draggable : false,
 											closable : true,
@@ -997,8 +997,7 @@ Ext.define('CustomApp',
 											width : 800,
 											title : dialogTitle
 										});
-										// me._getMilestoneBurnupChart(r,
-										// chartDiag);
+										
 									} else {
 										Ext.Msg.alert(dialogTitle, 'Sorry! There are NO reference mentioned.');
 									}
@@ -1020,11 +1019,25 @@ Ext.define('CustomApp',
 							handler : function(grid, rowIndex, colIndex) {
 								var record = grid.getStore().getAt(rowIndex);
 								if (record.get('FormattedID') !== null && record.get('FormattedID') !== "") {
+									
+									var chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+										autoShow : false,
+										draggable : false,
+										closable : true,
+										closeAction : 'destroy',
+										padding : 10,
+										width : 800,
+										height : 500,
+										autoScroll : true,
+										id : 'Burnup_Chart_Diag'
+									});
+									
 									var dialogTitle = record.get('FormattedID') + ': Burnup Chart';
-									me.chartDiag.setTitle(dialogTitle);
-									me.chartDiag.removeAll(true);
-									me.chartDiag.show();
-									me._getMilestoneBurnupChart(record, me.chartDiag);
+									chartDiag.setTitle(dialogTitle);
+									chartDiag.removeAll(true);
+									chartDiag.show();
+									me._getMilestoneBurnupChart(record, chartDiag);
+									
 								} else {
 									Ext.Msg.alert("Burnup Chart", 'No Chart is available for valuestream item. Please click on individual milstone chart icon to get the chart.');
 								}
@@ -1045,11 +1058,24 @@ Ext.define('CustomApp',
 							handler : function(grid, rowIndex, colIndex) {
 								var record = grid.getStore().getAt(rowIndex);
 								if (record.get('FormattedID') !== null && record.get('FormattedID') !== "") {
+									
+									var projWiseStatusDiag = Ext.create('Rally.ui.dialog.Dialog', {
+										autoShow : false,
+										draggable : false,
+										closable : true,
+										closeAction : 'destroy',
+										padding : 10,
+										width : 800,
+										height : 500,
+										autoScroll : true,
+										id : 'Project_Wise_Status_Diag'
+									});
+									
 									var dialogTitle = record.get('FormattedID') + ': Milestone Project Wise User Story View';
-									me.projWiseStatusDiag.setTitle(dialogTitle);
-									me.projWiseStatusDiag.removeAll(true);
-									me.projWiseStatusDiag.show();
-									me._getMilestoneProjectWiseView(record, me.projWiseStatusDiag);
+									projWiseStatusDiag.setTitle(dialogTitle);
+									projWiseStatusDiag.removeAll(true);
+									projWiseStatusDiag.show();
+									me._getMilestoneProjectWiseView(record, projWiseStatusDiag);
 								} else {
 									Ext.Msg.alert("Project Wise Status", 'No Project Wise User Story View is available for valuestream item. Please click on individual milstone chart icon to get the view.');
 								}
