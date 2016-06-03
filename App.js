@@ -2115,13 +2115,36 @@ Ext.define('CustomApp',
 						}
 					} ],
 					gridConfig : {
-						columnCfgs : [ 'FormattedID', 'Name', 'ScheduleState', 'Project', 'Feature' ],
+						columnCfgs : [ {
+							text : 'Name',
+							dataIndex : 'Name'
+						}, {
+							text : 'Status',
+							dataIndex : 'ScheduleState'
+						}, {
+							text : 'Team',
+							dataIndex : 'Project'
+						}, {
+							text : 'Feature',
+							dataIndex : 'Feature',
+							renderer : function(value) {
+								if(value){
+									return value.FormattedID + ' - ' + value.Name;
+								} else {
+									return " ";
+								}
+								
+							}
+						} ],
 						store : gridStore,
 						enableEditing : false,
 						enableRanking : false,
 						enableInlineAdd : false,
 						enableBulkEdit : false,
 						enableScheduleStateClickable : false,
+						enableColumnHide : true,
+						enableColumnMove : true,
+						enableColumnResize : true,
 						showRowActionsColumn : false
 					},
 					height : this.getHeight()
