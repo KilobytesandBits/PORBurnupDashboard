@@ -1077,7 +1077,50 @@ Ext.define('CustomApp',
 							}
 						} ]
 
-					} ]
+					},
+					{
+						xtype : 'actioncolumn',
+						text : 'PRD',
+						width : 50,
+						items : [ {
+							icon : 'https://cdn3.iconfinder.com/data/icons/document-icons-2/30/647707-word-16.png', // Use a URL in the icon config
+							tooltip : 'PRD Report Generation',
+							getClass: this._displayIconForRow,
+							width : 75,
+							handler : function(grid, rowIndex, colIndex) {
+								var record = grid.getStore().getAt(rowIndex);
+								if (record.get('FormattedID') !== null && record.get('FormattedID') !== "") {
+									
+									var chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+										autoShow : false,
+										draggable : false,
+										closable : true,
+										closeAction : 'destroy',
+										padding : 10,
+										width : 1000,
+										height : 525,
+										autoScroll : true,
+										id : 'PRD_DOC_Diag'
+									});
+									
+									var dialogTitle = record.get('FormattedID') + ': PRD Document';
+									chartDiag.setTitle(dialogTitle);
+									chartDiag.removeAll(true);
+									chartDiag.show();
+									
+									
+									 var prdDynamicDoc = new PRDDynamicDoc();
+									 
+									 prdDynamicDoc._getReqData(record, chartDiag);
+								      
+								} else {
+									Ext.Msg.alert("Project Wise Status", 'No Project Wise User Story View is available for valuestream item. Please click on individual milstone chart icon to get the view.');
+								}
+
+							}
+						} ]
+
+					}]
 				});
 
 				valuestreamMilestoneTreePanel.on({
