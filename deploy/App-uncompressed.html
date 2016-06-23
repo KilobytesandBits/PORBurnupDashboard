@@ -1985,7 +1985,9 @@ Ext.define('CustomApp',
 							var link = Ext.String.format("{0}", value);
 							if (link.search('valuestream:') === -1) {
 								var ref = item.get('_ref');
-								link = Ext.String.format("<a target='_top' href='{1}'><b>{0}</b></a>", value, Rally.nav.Manager.getDetailUrl(ref));
+								var formattedId = item.get('FormattedID');
+								var lable = formattedId !== null ? Ext.String.format("<b>{0}-{1}</b>", formattedId, value) : Ext.String.format("<b>{0}</b>", value);
+								link = Ext.String.format("<a target='_top' href='{1}'><b>{0}</b></a>", lable, Rally.nav.Manager.getDetailUrl(ref));
 							} else {
 								var onlyName = link.replace('valuestream:', '');
 								link = Ext.String.format("<b>{0}</b>", onlyName);
