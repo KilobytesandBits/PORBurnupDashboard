@@ -216,8 +216,6 @@ Ext
 						data.shouldHaveClassOfServices = shouldHaveClassOfServices;
 						data.niceToHaveClassOfServices = niceToHaveClassOfServices;
 
-						console.log(data);
-
 						return data;
 					}
 

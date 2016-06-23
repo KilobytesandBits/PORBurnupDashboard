@@ -1084,7 +1084,7 @@ Ext.define('CustomApp',
 						width : 50,
 						items : [ {
 							icon : 'https://cdn3.iconfinder.com/data/icons/document-icons-2/30/647707-word-16.png', // Use a URL in the icon config
-							tooltip : 'PRD Report Generation',
+							tooltip : 'PRD Document Generation',
 							getClass: this._displayIconForRow,
 							width : 75,
 							handler : function(grid, rowIndex, colIndex) {
@@ -1114,7 +1114,49 @@ Ext.define('CustomApp',
 									 prdDynamicDoc._getReqData(record, chartDiag);
 								      
 								} else {
-									Ext.Msg.alert("Project Wise Status", 'No Project Wise User Story View is available for valuestream item. Please click on individual milstone chart icon to get the view.');
+									Ext.Msg.alert("PRD Doc Generation", 'No PRD Doc is available for valuestream item. Please click on individual milstone.');
+								}
+
+							}
+						} ]
+
+					},
+					{
+						xtype : 'actioncolumn',
+						text : 'PAD',
+						width : 50,
+						items : [ {
+							icon : 'https://cdn3.iconfinder.com/data/icons/brands-applications/512/Doc_B-16.png', // Use a URL in the icon config
+							tooltip : 'PAD Document Generation',
+							getClass: this._displayIconForRow,
+							width : 75,
+							handler : function(grid, rowIndex, colIndex) {
+								var record = grid.getStore().getAt(rowIndex);
+								if (record.get('FormattedID') !== null && record.get('FormattedID') !== "") {
+									
+									var chartDiag = Ext.create('Rally.ui.dialog.Dialog', {
+										autoShow : false,
+										draggable : false,
+										closable : true,
+										closeAction : 'destroy',
+										padding : 10,
+										width : 1000,
+										height : 525,
+										autoScroll : true,
+										id : 'PAD_DOC_Diag'
+									});
+									
+									var dialogTitle = record.get('FormattedID') + ': PAD Document';
+									chartDiag.setTitle(dialogTitle);
+									chartDiag.removeAll(true);
+									chartDiag.show();
+									
+									var padDynamicDoc = new PADDynamicDoc();
+									
+									padDynamicDoc._createMultiFeatureSelector(record, chartDiag);
+								      
+								} else {
+									Ext.Msg.alert("PAD Doc Generation", 'PAD Generation is available for valuestream item. Please click on individual milstone.');
 								}
 
 							}

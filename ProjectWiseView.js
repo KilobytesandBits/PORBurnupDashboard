@@ -43,8 +43,6 @@ Ext.define('ProjectWiseView', {
 
 		var selectedMilestone = this.selectedMilestone;
 
-		console.log("selectedMilestone", selectedMilestone);
-
 		return Ext.create('Rally.data.wsapi.artifact.Store', {
 			models : [ 'portfolioitem/feature', 'userstory', 'defect' ],
 			context : {
@@ -95,7 +93,6 @@ Ext.define('ProjectWiseView', {
 			} ]
 		}).then({
 			success : function(store) {
-				console.log("store", store);
 				that._drawProjectWiseViewGrid(store, projWiseStatusDiag);
 			}
 		});
@@ -108,8 +105,6 @@ Ext.define('ProjectWiseView', {
 	_getProjectWiseViewGridFilter : function() {
 
 		var filter = null;
-
-		console.log("this.artifactsData", this.artifactsData);
 
 		Ext.Array.each(this.artifactsData, function(artifactData) {
 			if (artifactData.get("PortfolioItemTypeName") === "Feature") {
@@ -143,8 +138,6 @@ Ext.define('ProjectWiseView', {
 			}
 
 		});
-
-		console.log("filter", filter);
 
 		return filter;
 	},
