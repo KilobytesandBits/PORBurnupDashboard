@@ -1408,7 +1408,7 @@ Ext.define('CustomApp',
 					padding : '10, 5, 10, 5',
 					model : 'Milestone',
 					field : 'c_ValueStream',
-					fieldLabel : 'ValueStreams',
+					fieldLabel : '* ValueStreams',
 					labelAlign : 'right',
 					emptyText : 'click to select',
 					multiSelect : true,
@@ -1448,7 +1448,7 @@ Ext.define('CustomApp',
 						type : 'hbox',
 						align : 'left'
 					},
-					items : [ executiveVisibityFilter, teamFilter, valuestreamFilter, filterButton ]
+					items : [ executiveVisibityFilter, valuestreamFilter, teamFilter, filterButton ]
 				};
 
 				var filterMessageDisplay = {
@@ -1560,8 +1560,11 @@ Ext.define('CustomApp',
 
 				var vsNameValues = (vsValues !== null && vsValues !== undefined) ? vsValues : 'No Values Streams selected';
 				var teamNameValues = (teamRefValues !== null && teamRefValues !== undefined) ? this._getProjectName(teamRefValues) : 'No Teams selected';
-
-				var filterMsg = "<div>Determing Milestones for ValueStream(s): <b>" + vsNameValues + "</b> and Team(s): <b>" + teamNameValues + "</b></div>";
+				var filterNoticeMsg = "<div><ul><li>Click on the <b>Filter</b> button to load your desired Milestones.</li><li>Select at least <u>one</u> <b>Valuestreams</b>" + 
+									" to populate Milestones. Valuestreams filter selection is <u>mandatory</u>.</li><li>By default all Milestones with Target Date <b>15 days past Today</b>" + 
+									" will be populate unless you specify complete Date range.</li><li>If not specified, Milestones belonging to <u>all</u> " + 
+									"applicable Teams will be displayed.</li></ul></div>";
+				var filterMsg = filterNoticeMsg + "<div>Determing Milestones for ValueStream(s): <b>" + vsNameValues + "</b> and Team(s): <b>" + teamNameValues + "</b></div>";
 				Ext.getCmp('filterMessage').update(filterMsg);
 			},
 
