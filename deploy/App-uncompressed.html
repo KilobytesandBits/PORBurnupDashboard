@@ -1281,12 +1281,6 @@ Ext.define('CustomApp',
 		{
 			extend : 'Rally.app.App',
 			componentCls : 'app',
-			config : {
-				defaultSettings : {
-					valueStreamPicker : 'FPA,Integration,Healthcare',
-					teamPicker : '/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837'
-				}
-			},
 
 			getSettingsFields : function() {
 				return [ {
@@ -1298,49 +1292,7 @@ Ext.define('CustomApp',
 					name : 'showNumberOfMonths',
 					xtype : 'rallynumberfield',
 					fieldLabel : 'Date Range (months)'
-				}, {
-					name : 'valueStreamPicker',
-					xtype : 'rallyfieldvaluecombobox',
-					model : 'Milestone',
-					field : 'c_ValueStream',
-					fieldLabel : 'Value Stream',
-					allowNoEntry : true,
-					multiSelect : true
-				}, {
-					name : 'teamPicker',
-					xtype : 'rallymultiobjectpicker',
-					overflowY : 'auto',
-					modelType : 'Project',
-					fieldLabel : 'Associated Teams',
-					filterFieldName : 'Name',
-					storeConfig : {
-						autoLoad : false,
-						fetch : [ 'Name', 'State' ],
-						pageSize : 200,
-						context : {
-							project : '/project/1694641494',
-							projectScopeUp : false,
-							projectScopeDown : true
-						},
-						filters : [ {
-							Property : 'State',
-							operator : '=',
-							Value : 'Open'
-						} ],
-						sorters : [ {
-							property : 'Name',
-							direction : 'ASC'
-						} ],
-						remoteGroup : false,
-						remoteSort : false,
-						remoteFilter : false,
-						limit : Infinity
-					},
-					listCfg : {
-						displayField : 'Name'
-					},
-					stateful : false
-				} ];
+				}];
 			},
 
 			items : [ {
@@ -1358,30 +1310,22 @@ Ext.define('CustomApp',
 			} ],
 
 			launch : function() {
-				var teamSelected = this.getSetting('teamPicker');
-				console.log('Get team selected Values: ', teamSelected);
-
 				var executiveVisibityFilter = {
 					xtype : 'rallycheckboxfield',
 					id : 'executiveVisibilityCheckbox',
 					boxLabel : 'Show Executive Visibility Only',
 					labelWidth : 200,
 					padding : '10, 5, 10, 5',
-					checked : false,
-					listeners : {
-						change : this._onReady,
-						// render : this._onReady,
-						scope : this
-					}
+					checked : false
 				};
 
 				var teamFilter = {
 					xtype : 'rallymultiobjectpicker',
 					id : 'teamFilterMultiPicker',
-					padding : '10, 5, 10, 5',
+					padding : '0, 5, 10, 5',
 					modelType : 'Project',
 					fieldLabel : 'Teams',
-					labelAlign : 'right',
+					labelAlign : 'left',
 					width : 400,
 					filterFieldName : 'Name',
 					listCfg : {
@@ -1396,7 +1340,6 @@ Ext.define('CustomApp',
 								this._setFilterMessage(false);
 							}
 						},
-						// render : this._onReady,
 						scope : this
 					}
 				};
@@ -1405,25 +1348,75 @@ Ext.define('CustomApp',
 					name : 'valueStreamPicker',
 					id : 'customValueStreamPicker',
 					xtype : 'rallyfieldvaluecombobox',
-					padding : '10, 5, 10, 5',
+					padding : '0, 5, 10, 5',
 					model : 'Milestone',
 					field : 'c_ValueStream',
 					fieldLabel : '* ValueStreams',
-					labelAlign : 'right',
+					labelAlign : 'left',
 					emptyText : 'click to select',
 					multiSelect : true,
+					allowNoEntry: true,
 					width : 400,
 					listeners : {
 						select : function(combo, records, eOpts) {
-							if (records !== null) {
+							if (records !== null && records !== undefined && records.length > 0) {
 								this.selectedMultiVSFilter = this._getValueStreamString(records);
 								combo.setValue(records);
 								this._setFilterMessage(false);
 							}
 						},
-						// render : this._onReady,
 						scope : this
 					}
+				};
+				
+				var milestoneFilterPanel = {
+					xtype: 'panel',
+					width: 550,
+					bodyPadding: 10,
+					border: false,
+					layout : {
+						type : 'vbox',
+						align : 'left'
+					},
+					items:[executiveVisibityFilter, valuestreamFilter, teamFilter]
+				};
+				
+				var fromDateFilter ={
+				        xtype: 'datefield',
+				        anchor: '100%',
+				        fieldLabel: 'From',
+				        name: 'from_date',
+				        id: 'from_date',
+				        maxValue: new Date()  // limited to the current date or prior
+				    };
+				    
+				var toDateFilter = {
+				        xtype: 'datefield',
+				        anchor: '100%',
+				        fieldLabel: 'To',
+				        name: 'to_date',
+				        id: 'to_date',
+				        listeners: {
+				        	expand: function(field, eOpts){
+				        		var value = this.down('datefield[name=from_date]').getValue();
+				        		console.log('From date value: ', value);
+				        		
+				        		var today = new Date();
+								var priorDate = Rally.util.DateTime.add(today, 'day', -15);
+								console.log('Default start ToDate: ', priorDate);
+								
+			                	field.setMinValue(Ext.isDate(value) ? value : priorDate);
+				        	},
+				        	scope: this
+				        }
+				    };
+				
+				var targetDateFilterPanel = {
+				    xtype: 'panel',
+				    width: 300,
+				    bodyPadding: 10,
+				    title: 'Target Dates',
+				    items: [fromDateFilter, toDateFilter]
 				};
 
 				var filterButton = {
@@ -1431,15 +1424,18 @@ Ext.define('CustomApp',
 					id : 'milestoneFilterButton',
 					xtype : 'rallybutton',
 					text : 'Filter',
-					margin : '5, 0, 0, 10',
+					margin : '5, 0, 0, 40',
 					padding : '5, 5, 5, 5',
 					width : 50,
 					handler : function() {
-						this._onReady();
+						if(this._isVSFilterValueSelected())
+							this._loadAllMilestones();
+						else
+							this._displayMessageForVSSelection();
 					},
 					scope : this
 				};
-
+	
 				var filterPanelContaier = {
 					xtype : "container",
 					itemId : "filterPanelContainer",
@@ -1448,7 +1444,7 @@ Ext.define('CustomApp',
 						type : 'hbox',
 						align : 'left'
 					},
-					items : [ executiveVisibityFilter, valuestreamFilter, teamFilter, filterButton ]
+					items : [ milestoneFilterPanel, targetDateFilterPanel, filterButton ]
 				};
 
 				var filterMessageDisplay = {
@@ -1497,6 +1493,25 @@ Ext.define('CustomApp',
 
 				this._getAllValidWorkspaceProjects();
 			},
+			
+			_isVSFilterValueSelected: function(){
+				return (this.selectedMultiVSFilter !== null && this.selectedMultiVSFilter !== undefined 
+				&& this.selectedMultiVSFilter.length > 0 && this.selectedMultiVSFilter !== '-- No Entry --');
+			},
+			
+			_displayMessageForVSSelection: function(){
+				
+				var filterMsg = this._getFilterNoticeMessage() + '<div><p style="color:red">Valustream filter value NOT selected.</p></div>';
+				Ext.getCmp('filterMessage').update(filterMsg);
+			},
+			
+			_getFilterNoticeMessage: function(){
+				var filterNoticeMsg = "<div><ul><li>Click on the <b>Filter</b> button to load your desired Milestones.</li><li>Select at least <u>one</u> <b>Valuestreams</b>" + 
+									" to populate Milestones. Valuestreams filter selection is <u>mandatory</u>.</li><li>By default all Milestones with Target Date <b>15 days past Today</b>" + 
+									" will be populate unless you specify complete Date range.</li><li>If not specified, Milestones belonging to <u>all</u> " + 
+									"applicable Teams will be displayed.</li></ul></div>";
+				return filterNoticeMsg;
+			},
 
 			_getAllValidWorkspaceProjects : function() {
 				this.allWorkspaceProjectColl = [];
@@ -1540,9 +1555,11 @@ Ext.define('CustomApp',
 
 							this._setDefaultFilteringValues();
 
-							this._setFilterMessage(true);
+							this._setFilterMessage(false);
+							
+							Ext.getBody().unmask();
 
-							this._loadAllMilestones();
+							//this._loadAllMilestones();
 						},
 						scope : this
 					}
@@ -1558,12 +1575,9 @@ Ext.define('CustomApp',
 						: ((this.selectedMultiTeamFilter !== null && this.selectedMultiTeamFilter !== undefined && this.selectedMultiTeamFilter !== '') ? this.selectedMultiTeamFilter
 								: this.defaultTeamFilterSetting);
 
-				var vsNameValues = (vsValues !== null && vsValues !== undefined) ? vsValues : 'No Values Streams selected';
+				var vsNameValues = (vsValues !== null && vsValues !== undefined && vsValues !== '-- No Entry --') ? vsValues : 'No Values Streams selected';
 				var teamNameValues = (teamRefValues !== null && teamRefValues !== undefined) ? this._getProjectName(teamRefValues) : 'No Teams selected';
-				var filterNoticeMsg = "<div><ul><li>Click on the <b>Filter</b> button to load your desired Milestones.</li><li>Select at least <u>one</u> <b>Valuestreams</b>" + 
-									" to populate Milestones. Valuestreams filter selection is <u>mandatory</u>.</li><li>By default all Milestones with Target Date <b>15 days past Today</b>" + 
-									" will be populate unless you specify complete Date range.</li><li>If not specified, Milestones belonging to <u>all</u> " + 
-									"applicable Teams will be displayed.</li></ul></div>";
+				var filterNoticeMsg =this._getFilterNoticeMessage();
 				var filterMsg = filterNoticeMsg + "<div>Determing Milestones for ValueStream(s): <b>" + vsNameValues + "</b> and Team(s): <b>" + teamNameValues + "</b></div>";
 				Ext.getCmp('filterMessage').update(filterMsg);
 			},
@@ -1610,16 +1624,16 @@ Ext.define('CustomApp',
 					this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
 					break;
 				default:
-					this.isDefaultUserSettingPresent = true;
-					this.defaultValueStreamSetting = "FPA,Integration,Healthcare";
-					this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
+					this.isDefaultUserSettingPresent = false;
+					//this.defaultValueStreamSetting = "FPA,Integration,Healthcare";
+					//this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
 				}
 			},
 
 			_getValueStreamString : function(records) {
 				var valuesteams = '';
 				Ext.Array.each(records, function(vsRec) {
-					if (vsRec.get('name') !== null)
+					if (vsRec.get('name') !== null && vsRec.get('name') !== '-- No Entry --')
 						valuesteams = valuesteams + vsRec.get('name') + ',';
 				});
 				return (valuesteams !== '' && valuesteams.length > 1) ? valuesteams.substring(0, valuesteams.length - 1) : valuesteams;
@@ -1633,11 +1647,6 @@ Ext.define('CustomApp',
 				});
 
 				return (teamList !== '' && teamList.length > 1) ? teamList.substring(0, teamList.length - 1) : teamList;
-			},
-
-			_onReady : function() {
-
-				this._loadAllMilestones();
 			},
 
 			_loadAllMilestones : function() {
@@ -2574,12 +2583,35 @@ Ext.define('CustomApp',
 			_createMilestoneStoreFilter : function() {
 
 				console.log('creating milestone filter...!');
-
-				this.projectMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
-					property : 'TargetDate',
-					operator : '>=',
-					value : 'today-15'
-				});
+				
+				var fromDate = Ext.getCmp('from_date').getValue();
+				var toDate = Ext.getCmp('to_date').getValue(); 
+				console.log('From Date: ', fromDate);
+				console.log('To Date: ', toDate);
+				
+				//if Target date filters are provided add this filters.
+				if(fromDate !== null){
+					this.projectMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
+						property : 'TargetDate',
+						operator : '>=',
+						value : fromDate
+					});
+				}
+				else{
+					this.projectMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
+						property : 'TargetDate',
+						operator : '>=',
+						value : 'today-15'
+					});
+				}
+				
+				if(toDate !== null){
+					this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+						property : 'TargetDate',
+						operator : '<=',
+						value : toDate
+					}));
+				}
 
 				// only apply filtering on the notes field if configured
 				if (this._getVisibilityFilter()) {
