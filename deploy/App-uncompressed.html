@@ -1318,6 +1318,21 @@ Ext.define('CustomApp',
 					padding : '10, 5, 10, 5',
 					checked : false
 				};
+				
+				var excludeCompleteMilestoneFilter = {
+					xtype : 'rallycheckboxfield',
+					id : 'excludeCompleteMilestoneCheckbox',
+					boxLabel : 'Exclude All Completed Milestone',
+					labelWidth : 200,
+					padding : '0, 5, 10, 5',
+					checked : false,
+					listeners: {
+						change: function( field, newValue, oldValue, eOpts ){
+							this.excludeCompletedMSFilterSetting = newValue;
+						},
+						scope: this
+					}
+				};
 
 				var teamFilter = {
 					xtype : 'rallymultiobjectpicker',
@@ -1369,16 +1384,39 @@ Ext.define('CustomApp',
 					}
 				};
 				
-				var milestoneFilterPanel = {
+				var checkBoxFilterPanel = {
 					xtype: 'panel',
-					width: 550,
+					width: 250,
 					bodyPadding: 10,
 					border: false,
 					layout : {
 						type : 'vbox',
 						align : 'left'
 					},
-					items:[executiveVisibityFilter, valuestreamFilter, teamFilter]
+					items:[executiveVisibityFilter, excludeCompleteMilestoneFilter]
+				};
+				
+				var teamVSFilterPanel = {
+					xtype: 'panel',
+					width: 450,
+					bodyPadding: '15 10 10 10',
+					border: false,
+					layout : {
+						type : 'vbox',
+						align : 'left'
+					},
+					items:[valuestreamFilter, teamFilter]
+				};
+				
+				var milestoneFilterPanel = {
+					xtype: 'panel',
+					width: 700,
+					border: false,
+					layout : {
+						type : 'hbox',
+						align : 'left'
+					},
+					items:[checkBoxFilterPanel, teamVSFilterPanel]
 				};
 				
 				var fromDateFilter ={
@@ -1507,7 +1545,9 @@ Ext.define('CustomApp',
 			
 			_getFilterNoticeMessage: function(){
 				var filterNoticeMsg = "<div><ul><li>Click on the <b>Filter</b> button to load your desired Milestones.</li><li>Select at least <u>one</u> <b>Valuestreams</b>" + 
-									" to populate Milestones. Valuestreams filter selection is <u>mandatory</u>.</li><li>By default all Milestones with Target Date <b>15 days past Today</b>" + 
+									" to populate Milestones. Valuestreams filter selection is <u>mandatory</u>.</li> " + 
+									"<li>By Default <b>Exclude All Completed Milestone</b> is turned OFF. Turned it ON in case you want to exclude the same. </li>" + 
+									"<li>By default all Milestones with Target Date <b>15 days past Today</b>" + 
 									" will be populate unless you specify complete Date range.</li><li>If not specified, Milestones belonging to <u>all</u> " + 
 									"applicable Teams will be displayed.</li></ul></div>";
 				return filterNoticeMsg;
@@ -1617,14 +1657,17 @@ Ext.define('CustomApp',
 					this.isDefaultUserSettingPresent = true;
 					this.defaultValueStreamSetting = "FPA,Integration";
 					this.defaultTeamFilterSetting = "/project/5822498311,/project/5103590994,/project/12207383723";
+					this.excludeCompletedMSFilterSetting = true;
 					break;
 				case "deepan.biswas@lexmark.com":
 					this.isDefaultUserSettingPresent = true;
 					this.defaultValueStreamSetting = "FPA,Integration,Healthcare";
 					this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
+					this.excludeCompletedMSFilterSetting = true;
 					break;
 				default:
 					this.isDefaultUserSettingPresent = false;
+					this.excludeCompletedMSFilterSetting = false;
 					//this.defaultValueStreamSetting = "FPA,Integration,Healthcare";
 					//this.defaultTeamFilterSetting = "/project/3874483234,/project/7418464221,/project/9618552669,/project/2508024112,/project/3574043643,/project/2720145837";
 				}
@@ -2334,11 +2377,13 @@ Ext.define('CustomApp',
 				var storyInfo = milestoneComputeResult.storyInfo;
 				var projColl = milestoneComputeResult.projectColl;
 				var targetDate = milestoneRec.get('TargetDate');
-
-				if ((storyInfo.storyCount > 0 && storyInfo.storyCount === storyInfo.acceptedCount) && (targetDate !== '' && targetDate <= new Date())) {
-					isValid = false;
+				
+				if(this.excludeCompletedMSFilterSetting){
+					if ((storyInfo.storyCount > 0 && storyInfo.storyCount === storyInfo.acceptedCount) && (targetDate !== '' && targetDate <= new Date())) {
+						isValid = false;
+					}
 				}
-
+			
 				// console.log('StoryInfo filter is ' + isValid + ' for
 				// Milestone: ', milestoneRec);
 
@@ -2352,6 +2397,12 @@ Ext.define('CustomApp',
 				// Milestone: ', milestoneRec);
 
 				return isValid;
+			},
+			
+			_getExcludeCompletedMilestoneFilter : function() {
+				var excludeCompletedMSCheckBox = Ext.getCmp('excludeCompleteMilestoneCheckbox');
+				return excludeCompletedMSCheckBox.getValue();
+				// return true;
 			},
 
 			_getTeamFilterSelectionValue : function() {
@@ -2622,7 +2673,7 @@ Ext.define('CustomApp',
 					}));
 				}
 
-				// only filter on date range if configured
+				/*// only filter on date range if configured
 				if (this.getSetting('showNumberOfMonths') && this.getSetting('showNumberOfMonths') > 0) {
 					var endDate = Rally.util.DateTime.add(new Date(), "month", this.getSetting('showNumberOfMonths'));
 
@@ -2631,33 +2682,35 @@ Ext.define('CustomApp',
 						operator : '<=',
 						value : endDate
 					}));
-				}
+				}*/
 
 				// determining ValueStream filtering.
-				var vsSelectedValues = this.getSetting('valueStreamPicker');
-
-				if (this.selectedMultiVSFilter !== null && this.selectedMultiVSFilter !== undefined && this.selectedMultiVSFilter.length > 0) {
-					vsSelectedValues = this.selectedMultiVSFilter;
-				} else if (this.isDefaultUserSettingPresent && this.defaultValueStreamSetting !== null && this.defaultValueStreamSetting !== undefined && this.defaultValueStreamSetting !== '') {
+				var vsSelectedValues = this.selectedMultiVSFilter;
+				
+				if (this.isDefaultUserSettingPresent && this.defaultValueStreamSetting !== null && this.defaultValueStreamSetting !== undefined && this.defaultValueStreamSetting !== '') {
 					vsSelectedValues = this.defaultValueStreamSetting;
 				}
 
 				var vsFilters = vsSelectedValues.split(',');
-
-				this.projectMilestoneFilter = this.projectMilestoneFilter.and(Ext.create('Rally.data.wsapi.Filter', {
+				
+				var valueStreamMilestoneFilter = Ext.create('Rally.data.wsapi.Filter', {
 					property : 'c_ValueStream',
 					operator : 'contains',
 					value : vsFilters[0]
-				}));
+				});
+				
 				if (vsFilters.length > 1) {
 					for (var i = 1; i < vsFilters.length; i++) {
-						this.projectMilestoneFilter = this.projectMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
+						valueStreamMilestoneFilter = valueStreamMilestoneFilter.or(Ext.create('Rally.data.wsapi.Filter', {
 							property : 'c_ValueStream',
 							operator : 'contains',
 							value : vsFilters[i]
 						}));
 					}
 				}
+
+				this.projectMilestoneFilter = this.projectMilestoneFilter.and(valueStreamMilestoneFilter);
+				
 			},
 
 			_loadArtifacts : function(milestoneRecords) {
