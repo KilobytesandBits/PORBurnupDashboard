@@ -1,32 +1,36 @@
 .app {
 	/* Add app styles here */
+	
 }
 
-#page-content ol {
-	list-style-type: none;
-	counter-reset: item;
-	margin: 0;
-	padding: 0;
-}
+#page-content {
+	ol { 
+		list-style-type:none;
+		counter-reset: item;
+		margin: 0;
+		padding: 0;
+	}
+	
+	li {
+		display: table;
+		counter-increment: item;
+		margin-bottom: 0.6em;
+	}
+	
+	li:before {
+		content: counters(item, ".") ". ";
+		display: table-cell;
+		padding-right: 0.6em;
+	}
+	
+	li li {
+		margin: 0;
+	}
+	
+	li li:before {
+		content: counters(item, ".") " ";
+	}
 
-#page-content li {
-	display: table;
-	counter-increment: item;
-	margin-bottom: 0.6em;
-}
-
-#page-content li:before {
-	content: counters(item, ".") ". ";
-	display: table-cell;
-	padding-right: 0.6em;
-}
-
-#page-content li li {
-	margin: 0;
-}
-
-#page-content li li:before {
-	content: counters(item, ".") " ";
 }
 
 .custExprtBtnCls {

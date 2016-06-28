@@ -337,35 +337,6 @@ var saveAs=saveAs||function(e){"use strict";if("undefined"==typeof navigator||!/
 					_generatePAD : function(generatedPADObj) {
 
 						var tpl = new Ext.XTemplate(
-								'<style type="text/css">',
-								'#page-content ol {',
-								'	list-style-type: none;',
-								'	counter-reset: item;',
-								'	margin: 0;',
-								'	padding: 0;',
-								'}',
-
-								'#page-content li {',
-								'	display: table;',
-								'	counter-increment: item;',
-								'	margin-bottom: 0.6em;',
-								'}',
-
-								'#page-content li:before {',
-								'	content: counters(item, ".") ". ";',
-								'	display: table-cell;',
-								'	padding-right: 0.6em;',
-								'}',
-
-								'#page-content li li {',
-								'	margin: 0;',
-								'}',
-
-								'#page-content li li:before {',
-								'	content: counters(item, ".") " ";',
-								'}',
-								
-								'</style>',
 
 								'<div id="page-content" style="font-size: medium;font-family: arial, Verdana, sans-serif"><h1 style="text-align : center;">Product Architecture Document (PAD)</h1>',
 
@@ -3094,6 +3065,28 @@ Ext.define('CustomApp',
     <style type="text/css">
         .app {
   /* Add app styles here */
+}
+#page-content ol {
+  list-style-type: none;
+  counter-reset: item;
+  margin: 0;
+  padding: 0;
+}
+#page-content li {
+  display: table;
+  counter-increment: item;
+  margin-bottom: 0.6em;
+}
+#page-content li:before {
+  content: counters(item, ".") ". ";
+  display: table-cell;
+  padding-right: 0.6em;
+}
+#page-content li li {
+  margin: 0;
+}
+#page-content li li:before {
+  content: counters(item, ".") " ";
 }
 /* #page-content ol {
 	list-style-type: none;
