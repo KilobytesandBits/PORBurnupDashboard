@@ -337,6 +337,35 @@ var saveAs=saveAs||function(e){"use strict";if("undefined"==typeof navigator||!/
 					_generatePAD : function(generatedPADObj) {
 
 						var tpl = new Ext.XTemplate(
+								'<style type="text/css">',
+								'#page-content ol {',
+								'	list-style-type: none;',
+								'	counter-reset: item;',
+								'	margin: 0;',
+								'	padding: 0;',
+								'}',
+
+								'#page-content li {',
+								'	display: table;',
+								'	counter-increment: item;',
+								'	margin-bottom: 0.6em;',
+								'}',
+
+								'#page-content li:before {',
+								'	content: counters(item, ".") ". ";',
+								'	display: table-cell;',
+								'	padding-right: 0.6em;',
+								'}',
+
+								'#page-content li li {',
+								'	margin: 0;',
+								'}',
+
+								'#page-content li li:before {',
+								'	content: counters(item, ".") " ";',
+								'}',
+								
+								'</style>',
 
 								'<div id="page-content" style="font-size: medium;font-family: arial, Verdana, sans-serif"><h1 style="text-align : center;">Product Architecture Document (PAD)</h1>',
 
@@ -397,12 +426,13 @@ var saveAs=saveAs||function(e){"use strict";if("undefined"==typeof navigator||!/
 								'<p style="color: blue;">&lt;Describe in detail all aspects of this project which will be user visible. Include UI wireframe mock-ups if the project will include new or modified UI components.  For screens with complex behaviors or multiple views, include a mock-up showing each state.  These screenshots should have corresponding text that describes any special interactive behaviors that are not obvious from looking at a static picture.&gt; </p>',
 								'<ol>',
 								'<tpl for="selectedFeaturesObj">',
-								'<li><h3>{data.FormattedID} - {data.Name}<br/></h3></li>',
+								'<li><h3>{data.FormattedID} - {data.Name}<br/></h3>',
 								'<ol>',
 								'<tpl for="data.ChildStories">',
 								'<li><h4>{FormattedID} - {Name}<br/></h4><p>{Description}<br/></p> </li>',
 								'</tpl>',
 								'</ol>',
+								'</li>',
 								'</tpl>',
 								'</ol>',
 								'</li>',
@@ -416,7 +446,7 @@ var saveAs=saveAs||function(e){"use strict";if("undefined"==typeof navigator||!/
 								'<p>',
 								'<table style="border-collapse: collapse; border: 1px solid black; width: 590px;"><tr><th style="border: 1px solid black;">&nbsp;Task&nbsp;</th><th style="border: 1px solid black;">&nbsp;Estimate (person days)&nbsp;</th></tr>',
 								'<tpl for="selectedFeaturesObj">', '<tpl for="data.ChildStories">',
-								'<tr><td style="border: 1px solid black;">{FormattedID} - {Name};</td><td style="border: 1px solid black;">&nbsp;</td></tr>', '</tpl>', '</tpl>',
+								'<tr><td style="border: 1px solid black;">{FormattedID} - {Name}</td><td style="border: 1px solid black;">&nbsp;</td></tr>', '</tpl>', '</tpl>',
 								'<tr><td style="border: 1px solid black;">&nbsp;</td><td style="border: 1px solid black;">&nbsp;</td></tr>',
 								'<tr><td style="border: 1px solid black;">&nbsp;</td><td style="border: 1px solid black;">&nbsp;</td></tr>', '</table>', '</p>', '</li>', '</ol>',
 
@@ -3064,6 +3094,39 @@ Ext.define('CustomApp',
     <style type="text/css">
         .app {
   /* Add app styles here */
+}
+/* #page-content ol {
+	list-style-type: none;
+	counter-reset: item;
+	margin: 0;
+	padding: 0;
+}
+
+#page-content li {
+	display: table;
+	counter-increment: item;
+	margin-bottom: 0.6em;
+}
+
+#page-content li:before {
+	content: counters(item, ".") ". ";
+	display: table-cell;
+	padding-right: 0.6em;
+}
+
+#page-content li li {
+	margin: 0;
+}
+
+#page-content li li:before {
+	content: counters(item, ".") " ";
+} */
+.custExprtBtnCls {
+  margin-left: 20px;
+  padding: 10px;
+}
+.custExprtBtnCls:HOVER {
+  background-color: #ff6d29;
 }
 .ico-test-valustream {
   width: 20px;

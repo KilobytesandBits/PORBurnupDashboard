@@ -1,57 +1,104 @@
 .app {
-     /* Add app styles here */
+	/* Add app styles here */
 }
 
-.ico-test-valustream 
-{ 
-    width:20px; height:20px; top: 8px;
-    background-image:url('https://cdn4.iconfinder.com/data/icons/stash/128/ruby-16.png') !important; 
+#page-content ol {
+	list-style-type: none;
+	counter-reset: item;
+	margin: 0;
+	padding: 0;
 }
 
-.ico-test-milestone 
-{ 
-    width:20px; height:20px; top: 8px;
-    background-image:url('https://cdn1.iconfinder.com/data/icons/all_google_icons_symbols_by_carlosjj-du/16/milestone.png') !important; 
+#page-content li {
+	display: table;
+	counter-increment: item;
+	margin-bottom: 0.6em;
+}
+
+#page-content li:before {
+	content: counters(item, ".") ". ";
+	display: table-cell;
+	padding-right: 0.6em;
+}
+
+#page-content li li {
+	margin: 0;
+}
+
+#page-content li li:before {
+	content: counters(item, ".") " ";
+}
+
+.custExprtBtnCls {
+	margin-left: 20px;
+	padding: 10px;
+}
+
+.custExprtBtnCls:HOVER {
+	background-color: #ff6d29;
+}
+
+.ico-test-valustream {
+	width: 20px;
+	height: 20px;
+	top: 8px;
+	background-image:
+		url('https://cdn4.iconfinder.com/data/icons/stash/128/ruby-16.png')
+		!important;
+}
+
+.ico-test-milestone {
+	width: 20px;
+	height: 20px;
+	top: 8px;
+	background-image:
+		url('https://cdn1.iconfinder.com/data/icons/all_google_icons_symbols_by_carlosjj-du/16/milestone.png')
+		!important;
 }
 
 .color-box {
-    width: 15px;
-    height: 15px;
-    display: inline-block;
-    background-color: #ccc;
-    position: relative;
-    left: 10px;
-    top: 0px;
+	width: 15px;
+	height: 15px;
+	display: inline-block;
+	background-color: #ccc;
+	position: relative;
+	left: 10px;
+	top: 0px;
 }
 
-.show-icon{
-    display: inline-block;
+.show-icon {
+	display: inline-block;
 }
 
-.hide-icon{
-    display: none;
+.hide-icon {
+	display: none;
 }
 
 .no-icon {
-	display : none;
-	background-image:url('ext/resources/images/default/s.gif') !important;
+	display: none;
+	background-image: url('ext/resources/images/default/s.gif') !important;
 }
 
 .row-parent .x-grid-cell {
-    background-color: #77D38D !important;
+	background-color: #77D38D !important;
 }
+
 .x-grid-item-over .row-parent  .x-grid-cell {
-    background-color: #3da5f5 !important;
+	background-color: #3da5f5 !important;
 }
+
 .x-grid-item-selected .row-parent .x-grid-cell {
-    background-color: #ff0 !important;
+	background-color: #ff0 !important;
 }
+
 .row-child .x-grid-cell {
-    background-color: #FFFFFF !important;
+	background-color: #FFFFFF !important;
 }
+
 .x-grid-item-over .row-child .x-grid-cell {
-    background-color: #C2FABA !important;
+	background-color: #C2FABA !important;
 }
+
 .x-grid-item-selected .row-child .x-grid-cell {
-    background-color: #80AA79 !important;
+	background-color: #80AA79 !important;
 }
